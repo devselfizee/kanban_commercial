@@ -22,10 +22,13 @@ La base de développement tourne dans le conteneur Docker `ventes-postgres-local
 (port 5434), dans une base `kanban_commercial` isolée. Pour repartir d'une base
 neuve ailleurs, il suffit de changer `DATABASE_URL`.
 
-Le MVP n'a pas d'authentification : le sélecteur en haut à droite fixe
-l'utilisateur courant, ce qui permet de tester la matrice de droits. Cinq comptes
-sont créés par le seed — Marie et Thomas (commerciaux), Sophie (collaboratrice
-LLD), Laurent (manager), Claire (direction).
+**Authentification.** En production, l'identité vient de Keycloak (voir le
+guide de déploiement). En local, si les variables `AUTH_KEYCLOAK_*` sont
+absentes, l'application retombe sur un sélecteur d'utilisateur sans mot de
+passe : pratique pour éprouver la matrice de droits en changeant de rôle d'un
+clic, à ne jamais exposer publiquement. Cinq comptes sont créés par le seed —
+Marie et Thomas (commerciaux), Sophie (collaboratrice LLD), Laurent (manager),
+Claire (direction).
 
 ## Structure
 
@@ -140,18 +143,49 @@ dépôt. Coolify détecte le `Dockerfile` à la racine — laisser le build pack
 
 Port exposé : **3000**.
 
-### 3. Les variables d'environnement
+### 3. Le client Keycloak
+
+Dans la console Keycloak, sur le realm concerné :
+
+1. **Clients → Create client**
+   - Client ID : `kanban-commercial`
+   - Client authentication : **On** (client confidentiel)
+   - Standard flow : coché ; Direct access grants : décoché
+2. **Valid redirect URIs** : `https://kanban.exemple.com/api/auth/callback/keycloak`
+3. **Valid post logout redirect URIs** : `https://kanban.exemple.com/*`
+4. **Web origins** : `https://kanban.exemple.com`
+5. **Credentials** → copier le *Client secret*
+6. **Realm roles → Create role** : `kanban-commercial`, puis l'attribuer aux
+   personnes autorisées.
+
+Ce rôle unique ouvre l'accès à l'application. Le rôle métier — commercial,
+collaboratrice LLD, manager, direction — reste géré dans le kanban et rapproché
+par l'adresse e-mail : c'est un découpage propre à cette application, pas une
+notion d'annuaire.
+
+### 4. Les variables d'environnement
 
 | Variable | Obligatoire | Valeur |
 |---|---|---|
 | `DATABASE_URL` | oui | l'URL interne du service PostgreSQL |
+| `AUTH_KEYCLOAK_ISSUER` | oui | `https://keycloak.../realms/NOM_DU_REALM` |
+| `AUTH_KEYCLOAK_ID` | oui | `kanban-commercial` |
+| `AUTH_KEYCLOAK_SECRET` | oui | le *Client secret* copié à l'étape 3 |
+| `AUTH_SECRET` | oui | `openssl rand -base64 32` |
+| `AUTH_URL` | oui | l'URL publique de l'application |
+| `KEYCLOAK_ROLE_ACCES` | non | par défaut `kanban-commercial` |
 | `SYNCHRO_SECRET` | non | un secret long et aléatoire, si la synchro CRM est activée |
 | `RABBITMQ_*` | non | voir `.env.example` |
+
+⚠️ **Sans les variables `AUTH_KEYCLOAK_*`, l'authentification est désactivée** et
+l'application retombe sur le sélecteur d'utilisateur, qui laisse choisir
+librement son rôle. Ce mode convient au développement local ; il ne doit jamais
+être exposé publiquement.
 
 Sans les variables `RABBITMQ_*`, la synchronisation reste inactive et
 l'application fonctionne de façon autonome.
 
-### 4. Déployer
+### 5. Déployer
 
 `docker-entrypoint.sh` applique `prisma migrate deploy` avant de démarrer le
 serveur : les migrations suivent chaque déploiement sans intervention. L'image
@@ -171,7 +205,7 @@ node prisma/seed.mjs
 démonstration. Il ne doit jamais être exécuté sur une base contenant de vraies
 données.
 
-### 5. Créer les utilisateurs réels
+### 6. Créer les utilisateurs réels
 
 Le MVP n'a pas d'écran d'administration des comptes. Sur une base vide sans
 seed, aucun utilisateur n'existe et le sélecteur reste vide. Les créer en SQL

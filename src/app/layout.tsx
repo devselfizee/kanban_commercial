@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Navigation from "@/components/Navigation";
-import { utilisateurCourant } from "@/lib/session";
+import { authentificationActive, utilisateurCourant } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import "./globals.css";
 
@@ -14,18 +14,27 @@ export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const utilisateur = await utilisateurCourant();
-  const equipe = await prisma.utilisateur
-    .findMany({
-      where: { actif: true },
-      orderBy: [{ role: "asc" }, { nom: "asc" }],
-      select: { id: true, nom: true, prenom: true, role: true },
-    })
-    .catch(() => []); // base pas encore migrée : l'application reste affichable
+
+  // La liste de l'équipe n'alimente que le sélecteur du mode local : inutile de
+  // la charger quand Keycloak gouverne l'identité.
+  const equipe = authentificationActive
+    ? []
+    : await prisma.utilisateur
+        .findMany({
+          where: { actif: true },
+          orderBy: [{ role: "asc" }, { nom: "asc" }],
+          select: { id: true, nom: true, prenom: true, role: true },
+        })
+        .catch(() => []); // base pas encore migrée : l'application reste affichable
 
   return (
     <html lang="fr">
       <body className="min-h-screen bg-[var(--fond-page)] text-[var(--texte)] antialiased">
-        <Navigation utilisateur={utilisateur} equipe={equipe} />
+        <Navigation
+          utilisateur={utilisateur}
+          equipe={equipe}
+          authentifie={authentificationActive}
+        />
         <main className="px-5 py-5">{children}</main>
       </body>
     </html>

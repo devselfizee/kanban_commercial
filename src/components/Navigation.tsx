@@ -33,9 +33,12 @@ const ESPACES = [
 export default function Navigation({
   utilisateur,
   equipe,
+  /** Vrai quand Keycloak gouverne l'identité : le sélecteur n'a plus de sens. */
+  authentifie = false,
 }: {
   utilisateur: UtilisateurSession | null;
   equipe: { id: string; nom: string; prenom: string; role: Role }[];
+  authentifie?: boolean;
 }) {
   const chemin = usePathname();
   const router = useRouter();
@@ -98,30 +101,51 @@ export default function Navigation({
             ].join(" ")}
             aria-hidden="true"
           />
-          <label className="flex items-center gap-2 text-xs">
-            <span className="hidden text-[var(--texte-doux)] sm:inline">
-              Connecté comme
+          {authentifie ? (
+            <span className="flex items-center gap-2 text-xs">
+              <span className="hidden text-[var(--texte)] sm:inline">
+                {utilisateur
+                  ? `${utilisateur.prenom} ${utilisateur.nom}`
+                  : "Non identifié"}
+                {utilisateur && (
+                  <span className="ml-1.5 text-[var(--texte-doux)]">
+                    · {LIBELLE_ROLE[utilisateur.role]}
+                  </span>
+                )}
+              </span>
+              <a
+                href="/api/auth/signout"
+                className="rounded-lg border border-[var(--trait-fort)] px-2.5 py-1.5 text-xs text-[var(--texte-doux)] transition hover:border-[var(--selfizee-300)] hover:text-[var(--selfizee-600)]"
+              >
+                Déconnexion
+              </a>
             </span>
-            <select
-              value={utilisateur?.id ?? ""}
-              disabled={enCours}
-              onChange={(e) => {
-                const id = e.target.value;
-                demarrer(async () => {
-                  await choisirUtilisateur(id);
-                  router.refresh();
-                });
-              }}
-              className="rounded-lg border border-[var(--trait-fort)] bg-white px-2.5 py-1.5 text-xs text-[var(--texte)] transition hover:border-[var(--selfizee-300)]"
-            >
-              <option value="">choisir</option>
-              {equipe.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.prenom} {u.nom} · {LIBELLE_ROLE[u.role]}
-                </option>
-              ))}
-            </select>
-          </label>
+          ) : (
+            <label className="flex items-center gap-2 text-xs">
+              <span className="hidden text-[var(--texte-doux)] sm:inline">
+                Connecté comme
+              </span>
+              <select
+                value={utilisateur?.id ?? ""}
+                disabled={enCours}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  demarrer(async () => {
+                    await choisirUtilisateur(id);
+                    router.refresh();
+                  });
+                }}
+                className="rounded-lg border border-[var(--trait-fort)] bg-white px-2.5 py-1.5 text-xs text-[var(--texte)] transition hover:border-[var(--selfizee-300)]"
+              >
+                <option value="">choisir</option>
+                {equipe.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.prenom} {u.nom} · {LIBELLE_ROLE[u.role]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
 
           {/* Pastille d'identité */}
           <span
