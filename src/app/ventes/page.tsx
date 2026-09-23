@@ -47,6 +47,7 @@ export default async function PageVentes() {
         take: 1,
         select: { objet: true, dateReelle: true },
       },
+      _count: { select: { activites: true } },
     },
   });
 
@@ -122,6 +123,7 @@ export default async function PageVentes() {
         terminale,
       }),
       badgeLld: o.dossierLld ? BADGE_LLD_COURT[o.dossierLld.statut] : null,
+      nbActivites: o._count.activites,
       alerteCompatibilite: alerte.message,
     };
     return carte;

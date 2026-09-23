@@ -1,7 +1,11 @@
 "use client";
 
 /**
- * Navigation entre les trois espaces de travail (§ recommandation en une page).
+ * Barre de navigation horizontale.
+ *
+ * Elle double la barre latérale sur grand écran et la remplace en dessous de
+ * `lg`, où la latérale est masquée : l'application reste utilisable sur un
+ * portable de commercial.
  *
  * Le sélecteur d'utilisateur tient lieu d'authentification dans le MVP : il fixe
  * le rôle appliqué côté serveur, ce qui permet de tester la matrice de droits.
@@ -16,12 +20,13 @@ import type { UtilisateurSession } from "@/lib/session";
 import { choisirUtilisateur } from "@/app/actions/session";
 
 const ESPACES = [
-  { href: "/leads", libelle: "Leads à qualifier", objet: "Lead" },
-  { href: "/ventes", libelle: "Ventes", objet: "Opportunité" },
-  { href: "/lld", libelle: "LLD / GRENKE", objet: "Dossier LLD" },
-  { href: "/mes-actions", libelle: "Mes actions", objet: "Tâches" },
-  { href: "/pilotage", libelle: "Pilotage", objet: "Indicateurs" },
-  { href: "/synchro", libelle: "Synchro CRM", objet: "Synchronisation" },
+  { href: "/", libelle: "Kanban commercial", icone: grille },
+  { href: "/leads", libelle: "Leads à qualifier", icone: personnes },
+  { href: "/ventes", libelle: "Ventes", icone: cible },
+  { href: "/lld", libelle: "LLD / GRENKE", icone: document },
+  { href: "/mes-actions", libelle: "Mes actions", icone: calendrier },
+  { href: "/pilotage", libelle: "Pilotage", icone: barres },
+  { href: "/synchro", libelle: "Synchro CRM", icone: fleches },
 ];
 
 export default function Navigation({
@@ -36,57 +41,160 @@ export default function Navigation({
   const [enCours, demarrer] = useTransition();
 
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
-      <div className="mx-auto flex max-w-[1800px] flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2">
-        <Link href="/" className="flex items-baseline gap-2">
-          <span className="text-sm font-bold tracking-tight">Selfizee</span>
-          <span className="text-xs text-slate-500">Kanban commercial</span>
+    <header className="sticky top-0 z-20 border-b border-[var(--trait)] bg-white/95 backdrop-blur">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
+        {/* Logo, visible seulement quand la barre latérale est masquée */}
+        <Link href="/" className="flex items-center gap-2 lg:hidden">
+          <span className="text-lg font-bold tracking-tight text-[var(--selfizee-500)]">
+            Selfizee
+          </span>
         </Link>
 
-        <nav className="flex flex-1 flex-wrap gap-1">
+        <nav className="flex flex-1 flex-wrap items-center gap-1">
           {ESPACES.map((e) => {
-            const actif = chemin === e.href || chemin.startsWith(e.href + "/");
+            const actif =
+              e.href === "/" ? chemin === "/" : chemin.startsWith(e.href);
             return (
               <Link
                 key={e.href}
                 href={e.href}
-                title={e.objet}
+                aria-current={actif ? "page" : undefined}
                 className={[
-                  "rounded-md px-3 py-1.5 text-sm font-medium transition",
+                  "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition",
                   actif
-                    ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                    : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800",
+                    ? "bg-[var(--selfizee-600)] text-white"
+                    : "text-[var(--texte)] hover:bg-[var(--selfizee-50)] hover:text-[var(--selfizee-600)]",
                 ].join(" ")}
               >
-                {e.libelle}
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4 shrink-0"
+                  aria-hidden="true"
+                >
+                  {e.icone()}
+                </svg>
+                <span className="hidden sm:inline">{e.libelle}</span>
               </Link>
             );
           })}
         </nav>
 
-        <label className="flex items-center gap-2 text-xs">
-          <span className="text-slate-500">Connecté comme</span>
-          <select
-            value={utilisateur?.id ?? ""}
-            disabled={enCours}
-            onChange={(e) => {
-              const id = e.target.value;
-              demarrer(async () => {
-                await choisirUtilisateur(id);
-                router.refresh();
-              });
-            }}
-            className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-800"
+        <div className="flex items-center gap-2">
+          <span
+            className={[
+              "h-2 w-2 rounded-full",
+              utilisateur ? "bg-[var(--selfizee-500)]" : "bg-[var(--trait-fort)]",
+            ].join(" ")}
+            aria-hidden="true"
+          />
+          <label className="flex items-center gap-2 text-xs">
+            <span className="hidden text-[var(--texte-doux)] sm:inline">
+              Connecté comme
+            </span>
+            <select
+              value={utilisateur?.id ?? ""}
+              disabled={enCours}
+              onChange={(e) => {
+                const id = e.target.value;
+                demarrer(async () => {
+                  await choisirUtilisateur(id);
+                  router.refresh();
+                });
+              }}
+              className="rounded-lg border border-[var(--trait-fort)] bg-white px-2.5 py-1.5 text-xs text-[var(--texte)] transition hover:border-[var(--selfizee-300)]"
+            >
+              <option value="">choisir</option>
+              {equipe.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.prenom} {u.nom} · {LIBELLE_ROLE[u.role]}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {/* Pastille d'identité */}
+          <span
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--selfizee-500)] text-xs font-bold text-white"
+            title={
+              utilisateur
+                ? `${utilisateur.prenom} ${utilisateur.nom}`
+                : "Aucun utilisateur sélectionné"
+            }
           >
-            <option value="">— choisir —</option>
-            {equipe.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.prenom} {u.nom} · {LIBELLE_ROLE[u.role]}
-              </option>
-            ))}
-          </select>
-        </label>
+            {utilisateur
+              ? `${utilisateur.prenom[0]}${utilisateur.nom[0]}`.toUpperCase()
+              : "—"}
+          </span>
+        </div>
       </div>
     </header>
+  );
+}
+
+// --- Icônes -----------------------------------------------------------------
+
+function grille() {
+  return (
+    <>
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    </>
+  );
+}
+
+function personnes() {
+  return (
+    <>
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3 20a6 6 0 0 1 12 0M17 11h4M19 9v4" />
+    </>
+  );
+}
+
+function cible() {
+  return (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  );
+}
+
+function document() {
+  return (
+    <>
+      <path d="M6 3h8l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+      <path d="M14 3v5h4" />
+    </>
+  );
+}
+
+function calendrier() {
+  return (
+    <>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+    </>
+  );
+}
+
+function barres() {
+  return <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />;
+}
+
+function fleches() {
+  return (
+    <>
+      <path d="M20 11A8 8 0 0 0 6.3 5.7L4 8" />
+      <path d="M4 5v3h3M4 13a8 8 0 0 0 13.7 5.3L20 16" />
+      <path d="M20 19v-3h-3" />
+    </>
   );
 }

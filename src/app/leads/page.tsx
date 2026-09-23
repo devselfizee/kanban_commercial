@@ -62,6 +62,7 @@ export default async function PageLeads({
         take: 1,
         select: { objet: true, dateReelle: true },
       },
+      _count: { select: { activites: true } },
       opportunite: { select: { reference: true } },
     },
   });
@@ -134,6 +135,7 @@ export default async function PageLeads({
         dateReactivation: l.dateReactivation,
         terminale,
       }),
+      nbActivites: l._count.activites,
     };
   });
 

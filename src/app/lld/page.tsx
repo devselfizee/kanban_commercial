@@ -56,6 +56,7 @@ export default async function PageLld() {
         take: 1,
         select: { objet: true, dateReelle: true },
       },
+      _count: { select: { activites: true } },
     },
   });
 
@@ -127,6 +128,7 @@ export default async function PageLld() {
         prochaineRelanceLe: d.prochaineRelanceLe,
         terminale,
       }),
+      nbActivites: d._count.activites,
       alerteCompatibilite: alerte.message,
     };
     return carte;
@@ -144,6 +146,7 @@ export default async function PageLld() {
       <EnTetePipeline
         titre="LLD / GRENKE"
         sousTitre="Préparer, transmettre et suivre le dossier jusqu'aux signatures et à la livraison."
+        precision="Ce tableau enregistre des faits observables. Aucune décision de financement n'y est déduite en l'absence de retour du partenaire."
         total={cartes.length}
         sansSuivi={cartes.filter((c) => c.sansSuivi).length}
         alerte={
@@ -152,10 +155,6 @@ export default async function PageLld() {
             : undefined
         }
       />
-      <p className="mb-2 text-[11px] italic text-slate-500 dark:text-slate-400">
-        Ce tableau enregistre des faits observables. Aucune décision de financement
-        n&apos;y est déduite en l&apos;absence de retour du partenaire.
-      </p>
       <TableauLld colonnes={colonnes} />
     </div>
   );

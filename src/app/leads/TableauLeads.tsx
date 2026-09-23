@@ -16,6 +16,9 @@ export default function TableauLeads({
     <Tableau
       colonnes={colonnes}
       onOuvrir={(id) => router.push(`/leads/${id}`)}
+      // La création part toujours du formulaire : les champs obligatoires du §8
+      // ne peuvent pas être saisis dans une carte vide.
+      onAjouter={(cible) => router.push(`/leads/nouveau?statut=${cible}`)}
       onDeplacer={async (id, cible, rang) => {
         const r = await deplacerLead(id, cible, rang);
         if (!r.ok) return r.erreur;
