@@ -149,14 +149,23 @@ Dans la console Keycloak, sur le realm concerné :
 
 1. **Clients → Create client**
    - Client ID : `kanban-commercial`
-   - Client authentication : **On** (client confidentiel)
+   - Client authentication : **Off** pour un client public (PKCE), **On** pour
+     un client confidentiel
    - Standard flow : coché ; Direct access grants : décoché
 2. **Valid redirect URIs** : `https://kanban.exemple.com/api/auth/callback/keycloak`
 3. **Valid post logout redirect URIs** : `https://kanban.exemple.com/*`
 4. **Web origins** : `https://kanban.exemple.com`
-5. **Credentials** → copier le *Client secret*
+5. Client confidentiel seulement : **Credentials** → copier le *Client secret*
 6. **Realm roles → Create role** : `kanban-commercial`, puis l'attribuer aux
    personnes autorisées.
+
+L'application s'adapte aux deux types : sans `AUTH_KEYCLOAK_SECRET`, elle
+déclare le client comme public et s'authentifie par PKCE.
+
+Le kanban étant une application serveur, un client **confidentiel** reste
+préférable — le secret ne quitte jamais Coolify et n'est jamais exposé au
+navigateur. Un client public convient néanmoins, PKCE protégeant l'échange du
+code d'autorisation.
 
 Ce rôle unique ouvre l'accès à l'application. Le rôle métier — commercial,
 collaboratrice LLD, manager, direction — reste géré dans le kanban et rapproché
@@ -170,8 +179,8 @@ notion d'annuaire.
 | `DATABASE_URL` | oui | l'URL interne du service PostgreSQL |
 | `AUTH_KEYCLOAK_ISSUER` | oui | `https://keycloak.../realms/NOM_DU_REALM` |
 | `AUTH_KEYCLOAK_ID` | oui | `kanban-commercial` |
-| `AUTH_KEYCLOAK_SECRET` | oui | le *Client secret* copié à l'étape 3 |
-| `AUTH_SECRET` | oui | `openssl rand -base64 32` |
+| `AUTH_KEYCLOAK_SECRET` | client confidentiel seulement | le *Client secret* de l'étape 3 ; vide pour un client public |
+| `AUTH_SECRET` | oui | `openssl rand -base64 32` — chiffre les cookies de session, sans rapport avec Keycloak |
 | `AUTH_URL` | oui | l'URL publique de l'application |
 | `KEYCLOAK_ROLE_ACCES` | non | par défaut `kanban-commercial` |
 | `SYNCHRO_SECRET` | non | un secret long et aléatoire, si la synchro CRM est activée |

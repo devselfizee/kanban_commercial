@@ -17,15 +17,20 @@ import NextAuth, { type DefaultSession } from "next-auth";
 import Keycloak from "next-auth/providers/keycloak";
 import type { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { keycloakEstConfigure } from "@/lib/keycloak";
 
 /** Rôle Keycloak qui ouvre l'accès à l'application. */
 const ROLE_ACCES = process.env.KEYCLOAK_ROLE_ACCES || "kanban-commercial";
 
-export const keycloakConfigure = Boolean(
-  process.env.AUTH_KEYCLOAK_ISSUER &&
-    process.env.AUTH_KEYCLOAK_ID &&
-    process.env.AUTH_KEYCLOAK_SECRET,
-);
+/**
+ * Le secret n'est pas requis : un client Keycloak « public » s'authentifie par
+ * PKCE, sans secret partagé. Le test est partagé avec le filtre `proxy.ts`,
+ * qui doit protéger exactement les cas où l'authentification est active.
+ */
+export const keycloakConfigure = keycloakEstConfigure();
+
+/** Vrai lorsqu'aucun secret n'est fourni : le client est alors public. */
+const clientPublic = !process.env.AUTH_KEYCLOAK_SECRET;
 
 declare module "next-auth" {
   interface Session {
@@ -71,6 +76,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           clientId: process.env.AUTH_KEYCLOAK_ID,
           clientSecret: process.env.AUTH_KEYCLOAK_SECRET,
           issuer: process.env.AUTH_KEYCLOAK_ISSUER,
+          // PKCE est actif par défaut ; pour un client public il faut en outre
+          // déclarer que l'échange du code ne présente aucun secret, sinon
+          // Keycloak rejette la requête au point de terminaison des jetons.
+          ...(clientPublic
+            ? { client: { token_endpoint_auth_method: "none" } }
+            : {}),
         }),
       ]
     : [],

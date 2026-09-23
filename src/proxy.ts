@@ -11,15 +11,12 @@
  */
 
 import { NextResponse, type NextRequest } from "next/server";
+import { keycloakEstConfigure } from "@/lib/keycloak";
 
 const CHEMINS_PUBLICS = ["/connexion", "/api/auth"];
 
 export function proxy(requete: NextRequest) {
-  const keycloakConfigure = Boolean(
-    process.env.AUTH_KEYCLOAK_ISSUER &&
-      process.env.AUTH_KEYCLOAK_ID &&
-      process.env.AUTH_KEYCLOAK_SECRET,
-  );
+  const keycloakConfigure = keycloakEstConfigure();
 
   if (!keycloakConfigure) return NextResponse.next();
 
