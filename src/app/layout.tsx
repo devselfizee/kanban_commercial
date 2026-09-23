@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Navigation from "@/components/Navigation";
-import LisereMarque from "@/components/LisereMarque";
+import SignatureMarque from "@/components/SignatureMarque";
 import { utilisateurCourant } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import "./globals.css";
@@ -27,9 +27,8 @@ export default async function RootLayout({
     <html lang="fr">
       <body className="min-h-screen bg-[var(--fond-page)] text-[var(--texte)] antialiased">
         <Navigation utilisateur={utilisateur} equipe={equipe} />
-        {/* pb-2 : le contenu ne passe pas sous le liseré fixe. */}
-        <main className="px-5 pb-3 pt-5">{children}</main>
-        <LisereMarque />
+        <main className="px-5 py-5">{children}</main>
+        <SignatureMarque />
       </body>
     </html>
   );
