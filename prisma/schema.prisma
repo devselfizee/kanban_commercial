@@ -267,6 +267,16 @@ model Organisation {
   proprietaireId String?
   proprietaire   Utilisateur? @relation("OrganisationProprietaire", fields: [proprietaireId], references: [id])
 
+  /// Rapprochement avec le CRM (table `clients`). Le CRM fait autorité sur les
+  /// champs d'identité ; le kanban ne les réécrit jamais vers lui.
+  /// Même principe que les colonnes `id_in_sellsy` / `id_in_wp` déjà utilisées
+  /// côté CRM pour les systèmes tiers.
+  idCrm            Int?      @unique
+  synchroniseLe    DateTime?
+  /// Horodatage `modified` reçu du CRM : permet d'ignorer un événement périmé
+  /// livré dans le désordre.
+  versionCrm       DateTime?
+
   notes  String?
   creeLe DateTime @default(now())
   majLe  DateTime @updatedAt
@@ -310,6 +320,11 @@ model Contact {
 
   organisationId String?
   organisation   Organisation? @relation(fields: [organisationId], references: [id])
+
+  /// Rapprochement avec le CRM (table `client_contacts`).
+  idCrm         Int?      @unique
+  synchroniseLe DateTime?
+  versionCrm    DateTime?
 
   notes  String?
   creeLe DateTime @default(now())
@@ -711,4 +726,49 @@ model CompteurReference {
   valeur  Int    @default(0)
 
   @@map("compteurs_reference")
+}
+
+// ---------------------------------------------------------------------------
+// Synchronisation entrante depuis le CRM
+// ---------------------------------------------------------------------------
+
+enum ResultatSynchro {
+  CREE
+  MIS_A_JOUR
+  IGNORE_PERIME
+  IGNORE_SUPPRIME
+  ERREUR
+}
+
+/// Journal des événements reçus du CRM.
+///
+/// Sert à trois choses : diagnostiquer une donnée qui n'est pas remontée,
+/// rejouer un événement en échec, et garantir l'idempotence — un même message
+/// relivré par le bus ne doit pas être appliqué deux fois.
+model EvenementCrm {
+  id String @id @default(cuid())
+
+  /// Routing key du bus, par exemple « crm.clients.updated ».
+  routingKey String
+  /// Table d'origine côté CRM : clients, client_contacts, devis…
+  tableSource String
+  /// inserted | updated | deleted
+  action String
+  /// Identifiant de l'enregistrement dans le CRM.
+  idCrm Int
+
+  /// Empreinte du message, pour écarter un doublon de livraison.
+  empreinte String @unique
+
+  resultat ResultatSynchro
+  detail   String?
+  /// Charge utile brute, conservée pour pouvoir rejouer ou diagnostiquer.
+  charge   Json?
+
+  recuLe    DateTime  @default(now())
+  traiteLe  DateTime?
+
+  @@index([tableSource, idCrm])
+  @@index([recuLe])
+  @@map("evenements_crm")
 }

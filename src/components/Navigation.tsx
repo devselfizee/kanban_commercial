@@ -21,6 +21,7 @@ const ESPACES = [
   { href: "/lld", libelle: "LLD / GRENKE", objet: "Dossier LLD" },
   { href: "/mes-actions", libelle: "Mes actions", objet: "Tâches" },
   { href: "/pilotage", libelle: "Pilotage", objet: "Indicateurs" },
+  { href: "/synchro", libelle: "Synchro CRM", objet: "Synchronisation" },
 ];
 
 export default function Navigation({

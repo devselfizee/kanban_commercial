@@ -138,6 +138,79 @@ serveur : les migrations suivent automatiquement chaque déploiement. L'image
 utilise la sortie `standalone` de Next.js et tourne sous un utilisateur non
 privilégié.
 
+## Synchronisation avec le CRM Selfizee
+
+**Sens unique : CRM → kanban.** Le CRM fait autorité sur l'identité du client ;
+le kanban ne lui réécrit jamais rien. C'est le choix le plus sûr : aucune
+modification du CRM n'est nécessaire, et aucune donnée de référence ne risque
+d'être écrasée depuis le kanban.
+
+### Ce qui circule
+
+| Objet du kanban | Table CRM | État |
+|---|---|---|
+| Organisation | `clients` | Actif — le CRM publie déjà ces événements |
+| Contact | `client_contacts` | Nécessite une ligne côté CRM (voir plus bas) |
+| Devis | `devis` | Nécessite une ligne côté CRM |
+| Lead, opportunité, dossier LLD | — | Propres au kanban, jamais synchronisés |
+
+Le CRM publie sur un bus RabbitMQ à chaque modification, avec des clés de
+routage `crm.{table}.{inserted,updated,deleted}`. Le kanban lit sa propre queue
+par l'API HTTP de management — même approche que le CRM, parce que le port AMQP
+n'est pas joignable sous Coolify.
+
+### Mise en service
+
+Renseigner les variables d'environnement (voir `.env.example`), puis déclencher
+le drainage périodiquement :
+
+```bash
+curl -X POST https://kanban.exemple.com/api/synchro-crm \
+  -H "x-synchro-secret: $SYNCHRO_SECRET"
+```
+
+Une tâche planifiée Coolify toutes les deux minutes suffit. La réponse indique
+combien de messages restent à traiter (`encoreATraiter`), ce qui permet
+d'enchaîner un appel si le retard est important.
+
+Sans les variables `RABBITMQ_*`, la synchronisation reste inactive et le kanban
+fonctionne de façon autonome. La route refuse tout appel si `SYNCHRO_SECRET`
+n'est pas défini : mieux vaut une synchro inactive qu'un point d'écriture ouvert.
+
+L'écran **Synchro CRM** (réservé au manager) montre les 50 derniers événements
+reçus, leur issue et le nombre de messages en attente. C'est l'endroit où
+diagnostiquer une fiche qui n'est pas remontée.
+
+### Garanties
+
+- **Idempotence** — le bus livre « au moins une fois » ; une empreinte unique en
+  base écarte les relivraisons.
+- **Désordre** — un événement antérieur à la version enregistrée est ignoré
+  plutôt qu'appliqué à rebours.
+- **Non-régression** — seuls les champs dont le CRM est maître sont écrits. Le
+  segment affiné par le commercial, le propriétaire, les notes et tout le travail
+  commercial sont préservés.
+- **Rapprochement** — avant de créer une fiche, le kanban cherche une
+  correspondance par SIREN, e-mail, téléphone puis nom, pour ne pas dupliquer une
+  organisation saisie à la main.
+- **Suppression** — une fiche supprimée côté CRM est détachée, jamais effacée :
+  les leads, opportunités et activités qui s'y rattachent sont conservés.
+
+Ces garanties sont vérifiées par `npx tsx scripts/test-synchro.ts`, qui injecte
+des événements représentatifs sans passer par le bus.
+
+### Pour étendre aux contacts et aux devis
+
+Le CRM publie déjà les clients. Pour les contacts et les devis, il manque une
+ligne dans chacune des deux tables côté CRM :
+
+```php
+$this->addBehavior('EventPublisher');
+```
+
+dans `ClientContactsTable` et `DevisTable`. Le reste — liaison de la queue,
+correspondance des champs, traitement — est déjà en place côté kanban.
+
 ## Points à trancher avant le paramétrage définitif
 
 Le document les identifie comme plus importants que la couleur des colonnes.
