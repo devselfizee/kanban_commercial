@@ -426,7 +426,8 @@ export async function definirProchaineAction(
   opportuniteId: string,
   action: { le: string; label: string },
 ): Promise<ResultatAction> {
-  const utilisateur = await exigerUtilisateur();
+  // Vérifie qu'un utilisateur est bien connecté avant toute écriture.
+  await exigerUtilisateur();
   if (!action.le || !action.label.trim()) {
     return { ok: false, erreur: "Indiquez une action et sa date." };
   }

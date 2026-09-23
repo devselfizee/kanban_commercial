@@ -71,6 +71,8 @@ export async function creerLead(donnees: {
         "Une prochaine action datée est obligatoire : une carte ne doit jamais être perdue.",
     };
   }
+  const prochaineActionLe = new Date(donnees.prochaineActionLe);
+  const prochaineActionLabel = donnees.prochaineActionLabel.trim();
 
   const { priorite } = calculerPriorite({
     estEntrant: donnees.modeAcquisition === "ENTRANT",
@@ -108,8 +110,8 @@ export async function creerLead(donnees: {
         contactPrincipalId: donnees.contactPrincipalId || null,
         proprietaireId: donnees.proprietaireId || null,
         dateAttribution: attribue ? new Date() : null,
-        prochaineActionLe: new Date(donnees.prochaineActionLe),
-        prochaineActionLabel: donnees.prochaineActionLabel.trim(),
+        prochaineActionLe,
+        prochaineActionLabel,
         rang,
       },
     });
@@ -125,8 +127,8 @@ export async function creerLead(donnees: {
     // La prochaine action est aussi une tâche : elle apparaît dans « mes actions ».
     await tx.tache.create({
       data: {
-        libelle: donnees.prochaineActionLabel!.trim(),
-        echeance: new Date(donnees.prochaineActionLe!),
+        libelle: prochaineActionLabel,
+        echeance: prochaineActionLe,
         responsableId: donnees.proprietaireId || null,
         leadId: cree.id,
       },
