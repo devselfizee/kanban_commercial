@@ -17,6 +17,11 @@
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
+  "//": "Les binaires de sharp sont propres à chaque plateforme. Sans cette liste, un `npm install` lancé sous Windows retire ceux de Linux du lockfile, et `npm ci` échoue ensuite dans l'image Docker (alpine utilise musl).",
+  "optionalDependencies": {
+    "@img/sharp-linuxmusl-x64": "^0.35.4",
+    "@img/sharp-linux-x64": "^0.35.4"
+  },
   "dependencies": {
     "@prisma/client": "6.16.2",
     "next": "16.3.5",
