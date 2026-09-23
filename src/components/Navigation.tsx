@@ -7,8 +7,9 @@
  * ont besoin de toute la largeur disponible. Sous `sm`, les libellés cèdent la
  * place aux seules icônes.
  *
- * Le sélecteur d'utilisateur tient lieu d'authentification dans le MVP : il fixe
- * le rôle appliqué côté serveur, ce qui permet de tester la matrice de droits.
+ * Avec Keycloak, l'identité est affichée et un bouton de déconnexion la clôt.
+ * Sans lui, le sélecteur permet de changer d'utilisateur pour éprouver la
+ * matrice de droits en développement.
  */
 
 import Link from "next/link";
@@ -18,7 +19,7 @@ import { useTransition } from "react";
 import type { Role } from "@prisma/client";
 import { LIBELLE_ROLE } from "@/lib/domaine/libelles";
 import type { UtilisateurSession } from "@/lib/session";
-import { choisirUtilisateur } from "@/app/actions/session";
+import { choisirUtilisateur, deconnecter } from "@/app/actions/session";
 
 // L'accueil n'y figure pas : le logo y mène déjà.
 const ESPACES = [
@@ -113,12 +114,16 @@ export default function Navigation({
                   </span>
                 )}
               </span>
-              <a
-                href="/api/auth/signout"
-                className="rounded-lg border border-[var(--trait-fort)] px-2.5 py-1.5 text-xs text-[var(--texte-doux)] transition hover:border-[var(--selfizee-300)] hover:text-[var(--selfizee-600)]"
-              >
-                Déconnexion
-              </a>
+              {/* Déconnexion en POST : une requête GET déconnecterait sur simple
+                  préchargement de lien ou visite d'un robot. */}
+              <form action={deconnecter}>
+                <button
+                  type="submit"
+                  className="rounded-lg border border-[var(--trait-fort)] px-2.5 py-1.5 text-xs text-[var(--texte-doux)] transition hover:border-[var(--selfizee-300)] hover:text-[var(--selfizee-600)]"
+                >
+                  Déconnexion
+                </button>
+              </form>
             </span>
           ) : (
             <label className="flex items-center gap-2 text-xs">

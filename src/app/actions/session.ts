@@ -19,3 +19,9 @@ export async function choisirUtilisateur(id: string) {
   }
   revalidatePath("/", "layout");
 }
+
+/** Déconnexion Keycloak. Passe par une action serveur pour rester en POST. */
+export async function deconnecter() {
+  const { signOut } = await import("@/auth");
+  await signOut({ redirectTo: "/connexion" });
+}
