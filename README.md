@@ -126,17 +126,64 @@ automatisation ne le fait à sa place, même quand la checklist interne est comp
 
 ## Déploiement Coolify
 
-Le projet se déploie tel quel :
+### 1. La base de données
 
-1. Créer un service **PostgreSQL** dans Coolify et récupérer son URL interne.
-2. Créer une application depuis ce dépôt Git. Coolify détecte le `Dockerfile`.
-3. Définir la variable d'environnement `DATABASE_URL`.
-4. Déployer.
+**New Resource → Database → PostgreSQL**. Coolify fournit une URL interne du
+type `postgres://user:motdepasse@nom-du-service:5432/base`. C'est elle qu'il
+faut, pas l'URL publique : les deux ressources partagent le réseau interne.
+
+### 2. L'application
+
+**New Resource → Application → Private Repository (GitHub App)**, puis ce
+dépôt. Coolify détecte le `Dockerfile` à la racine — laisser le build pack sur
+`Dockerfile`, et non sur Nixpacks.
+
+Port exposé : **3000**.
+
+### 3. Les variables d'environnement
+
+| Variable | Obligatoire | Valeur |
+|---|---|---|
+| `DATABASE_URL` | oui | l'URL interne du service PostgreSQL |
+| `SYNCHRO_SECRET` | non | un secret long et aléatoire, si la synchro CRM est activée |
+| `RABBITMQ_*` | non | voir `.env.example` |
+
+Sans les variables `RABBITMQ_*`, la synchronisation reste inactive et
+l'application fonctionne de façon autonome.
+
+### 4. Déployer
 
 `docker-entrypoint.sh` applique `prisma migrate deploy` avant de démarrer le
-serveur : les migrations suivent automatiquement chaque déploiement. L'image
+serveur : les migrations suivent chaque déploiement sans intervention. L'image
 utilise la sortie `standalone` de Next.js et tourne sous un utilisateur non
 privilégié.
+
+La base démarre **vide**. Pour la peupler avec le jeu de démonstration, ouvrir
+un terminal sur le conteneur de l'application et lancer :
+
+```bash
+node prisma/seed.mjs
+```
+
+(Le seed est transpilé au build : l'image de production n'embarque pas `tsx`.)
+
+⚠️ Le seed **efface toutes les données existantes** avant de recréer le jeu de
+démonstration. Il ne doit jamais être exécuté sur une base contenant de vraies
+données.
+
+### 5. Créer les utilisateurs réels
+
+Le MVP n'a pas d'écran d'administration des comptes. Sur une base vide sans
+seed, aucun utilisateur n'existe et le sélecteur reste vide. Les créer en SQL
+depuis le terminal du service PostgreSQL :
+
+```sql
+INSERT INTO utilisateurs (id, email, nom, prenom, role, actif, "creeLe", "majLe")
+VALUES (gen_random_uuid()::text, 'prenom.nom@selfizee.fr', 'Nom', 'Prénom',
+        'COMMERCIAL', true, now(), now());
+```
+
+Rôles disponibles : `COMMERCIAL`, `COLLABORATRICE_LLD`, `MANAGER`, `DIRECTION`.
 
 ## Synchronisation avec le CRM Selfizee
 

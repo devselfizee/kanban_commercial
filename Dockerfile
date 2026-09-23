@@ -29,6 +29,11 @@ RUN npx prisma generate
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
+# Le seed est transpilé en JavaScript pour pouvoir être exécuté en production
+# sans embarquer `tsx`.
+RUN npx esbuild prisma/seed.ts --bundle --platform=node --format=esm \
+      --packages=external --outfile=prisma/seed.mjs
+
 # ---------------------------------------------------------------------------
 FROM node:22-alpine AS runner
 WORKDIR /app
@@ -54,6 +59,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_module
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin ./node_modules/.bin
+
+# `tsx` reste une dépendance de développement : le seed est embarqué compilé,
+# ce qui évite d'installer un transpileur dans l'image de production.
+COPY --from=builder --chown=nextjs:nodejs /app/prisma/seed.mjs ./prisma/seed.mjs
 
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh

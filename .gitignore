@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Le modèle de configuration doit être versionné : il documente les
+# variables à renseigner au déploiement.
+!.env.example
+
+# Seed transpilé, produit au build Docker.
+prisma/seed.mjs
