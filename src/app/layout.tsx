@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Navigation from "@/components/Navigation";
-import SignatureMarque from "@/components/SignatureMarque";
 import { utilisateurCourant } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import "./globals.css";
@@ -28,7 +27,6 @@ export default async function RootLayout({
       <body className="min-h-screen bg-[var(--fond-page)] text-[var(--texte)] antialiased">
         <Navigation utilisateur={utilisateur} equipe={equipe} />
         <main className="px-5 py-5">{children}</main>
-        <SignatureMarque />
       </body>
     </html>
   );
