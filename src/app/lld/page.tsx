@@ -142,7 +142,7 @@ export default async function PageLld() {
   const aConfirmer = cartes.filter((c) => c.alerteCompatibilite).length;
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] flex-col">
+    <div className="flex h-[calc(100vh-9.5rem)] flex-col">
       <EnTetePipeline
         titre="LLD / GRENKE"
         sousTitre="Préparer, transmettre et suivre le dossier jusqu'aux signatures et à la livraison."

@@ -1,17 +1,18 @@
 "use client";
 
 /**
- * Barre de navigation horizontale.
+ * Navigation unique de l'application.
  *
- * Elle double la barre latérale sur grand écran et la remplace en dessous de
- * `lg`, où la latérale est masquée : l'application reste utilisable sur un
- * portable de commercial.
+ * Une seule barre, horizontale : les tableaux kanban défilent latéralement et
+ * ont besoin de toute la largeur disponible. Sous `sm`, les libellés cèdent la
+ * place aux seules icônes.
  *
  * Le sélecteur d'utilisateur tient lieu d'authentification dans le MVP : il fixe
  * le rôle appliqué côté serveur, ce qui permet de tester la matrice de droits.
  */
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useTransition } from "react";
 import type { Role } from "@prisma/client";
@@ -19,8 +20,8 @@ import { LIBELLE_ROLE } from "@/lib/domaine/libelles";
 import type { UtilisateurSession } from "@/lib/session";
 import { choisirUtilisateur } from "@/app/actions/session";
 
+// L'accueil n'y figure pas : le logo y mène déjà.
 const ESPACES = [
-  { href: "/", libelle: "Kanban commercial", icone: grille },
   { href: "/leads", libelle: "Leads à qualifier", icone: personnes },
   { href: "/ventes", libelle: "Ventes", icone: cible },
   { href: "/lld", libelle: "LLD / GRENKE", icone: document },
@@ -43,11 +44,16 @@ export default function Navigation({
   return (
     <header className="sticky top-0 z-20 border-b border-[var(--trait)] bg-white/95 backdrop-blur">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
-        {/* Logo, visible seulement quand la barre latérale est masquée */}
-        <Link href="/" className="flex items-center gap-2 lg:hidden">
-          <span className="text-lg font-bold tracking-tight text-[var(--selfizee-500)]">
-            Selfizee
-          </span>
+        {/* Logotype officiel, repris du CRM : jamais recoloré ni reconstitué. */}
+        <Link href="/" className="flex shrink-0 items-center" aria-label="Accueil">
+          <Image
+            src="/marque/logo-selfizee.png"
+            alt="Selfizee"
+            width={243}
+            height={66}
+            priority
+            className="h-7 w-auto"
+          />
         </Link>
 
         <nav className="flex flex-1 flex-wrap items-center gap-1">
@@ -137,17 +143,6 @@ export default function Navigation({
 }
 
 // --- Icônes -----------------------------------------------------------------
-
-function grille() {
-  return (
-    <>
-      <rect x="3" y="3" width="7" height="7" rx="1.5" />
-      <rect x="14" y="3" width="7" height="7" rx="1.5" />
-      <rect x="3" y="14" width="7" height="7" rx="1.5" />
-      <rect x="14" y="14" width="7" height="7" rx="1.5" />
-    </>
-  );
-}
 
 function personnes() {
   return (

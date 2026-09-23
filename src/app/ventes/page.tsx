@@ -149,7 +149,7 @@ export default async function PageVentes() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] flex-col">
+    <div className="flex h-[calc(100vh-9.5rem)] flex-col">
       <EnTetePipeline
         titre="Ventes"
         sousTitre="Construire l'offre, négocier, obtenir la commande ou orienter vers la LLD."

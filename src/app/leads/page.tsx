@@ -147,7 +147,7 @@ export default async function PageLeads({
   const sansSuivi = cartes.filter((c) => c.sansSuivi).length;
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] flex-col">
+    <div className="flex h-[calc(100vh-9.5rem)] flex-col">
       <EnTetePipeline
         titre="Leads à qualifier"
         sousTitre="Répondre vite, comprendre le besoin, décider si le lead mérite une opportunité."

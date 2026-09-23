@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Navigation from "@/components/Navigation";
-import BarreLaterale from "@/components/BarreLaterale";
 import { utilisateurCourant } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import "./globals.css";
@@ -26,13 +25,8 @@ export default async function RootLayout({
   return (
     <html lang="fr">
       <body className="min-h-screen bg-[var(--fond-page)] text-[var(--texte)] antialiased">
-        <div className="flex">
-          <BarreLaterale />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <Navigation utilisateur={utilisateur} equipe={equipe} />
-            <main className="flex-1 px-5 py-5">{children}</main>
-          </div>
-        </div>
+        <Navigation utilisateur={utilisateur} equipe={equipe} />
+        <main className="px-5 py-5">{children}</main>
       </body>
     </html>
   );
