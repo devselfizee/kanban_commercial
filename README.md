@@ -8,49 +8,87 @@ Implémentation de « Proposition de pipeline commercial et LLD pour Selfizee »
 
 ---
 
-## Démarrage
+## Architecture
+
+Deux applications distinctes, déployées séparément :
+
+| Dossier | Rôle | Stack | Port |
+|---|---|---|---|
+| `back/` | API et logique métier | Node.js, Express, Prisma, TypeScript | 4000 |
+| `front/` | Interface | React, Vite, TypeScript, Tailwind | 5173 (dev) |
+
+**Le back décide, le front affiche.** Les règles du document — priorité, seuil de
+qualification, alerte de compatibilité partenaire, matrice de droits — sont
+appliquées côté serveur. Le front peut les refléter pour guider la saisie, il ne
+peut pas les contourner : les drapeaux « sans suivi » ou « prise en charge
+tardive » arrivent calculés depuis l'API.
+
+L'ancienne version en Next.js est conservée sur la branche `next-js-archive`.
+
+## Démarrage en local
+
+Il faut un PostgreSQL joignable. Deux terminaux :
 
 ```bash
+# API
+cd back
+cp ../.env.example .env        # renseigner DATABASE_URL
 npm install
-cp .env.example .env     # renseigner DATABASE_URL
-npm run db:deploy        # applique les migrations
-npm run db:seed          # jeu de démonstration (optionnel)
-npm run dev              # http://localhost:3000
+npm run db:deploy              # applique les migrations
+npm run db:seed                # jeu de démonstration (optionnel)
+npm run dev                    # http://localhost:4000
+
+# Interface
+cd front
+npm install
+npm run dev                    # http://localhost:5173
 ```
 
-La base de développement tourne dans le conteneur Docker `ventes-postgres-local`
-(port 5434), dans une base `kanban_commercial` isolée. Pour repartir d'une base
-neuve ailleurs, il suffit de changer `DATABASE_URL`.
+Le serveur Vite relaie `/api` vers le back : rien à configurer pour les appels.
 
-**Authentification.** En production, l'identité vient de Keycloak (voir le
-guide de déploiement). En local, si les variables `AUTH_KEYCLOAK_*` sont
-absentes, l'application retombe sur un sélecteur d'utilisateur sans mot de
-passe : pratique pour éprouver la matrice de droits en changeant de rôle d'un
-clic, à ne jamais exposer publiquement. Cinq comptes sont créés par le seed —
-Marie et Thomas (commerciaux), Sophie (collaboratrice LLD), Laurent (manager),
-Claire (direction).
+**Authentification.** Sans les variables Keycloak, l'interface propose un
+sélecteur d'utilisateur et l'API accepte un en-tête `x-utilisateur`. Pratique
+pour éprouver la matrice de droits en changeant de rôle d'un clic, à ne jamais
+exposer publiquement. Cinq comptes sont créés par le seed — Marie et Thomas
+(commerciaux), Sophie (collaboratrice LLD), Laurent (manager), Claire
+(direction).
 
 ## Structure
 
-| Chemin | Rôle |
-|---|---|
-| `prisma/schema.prisma` | Les 5 objets, les listes de valeurs et les relations |
-| `prisma/seed.ts` | Données de démonstration, y compris les cas qui déclenchent les alertes |
-| `src/lib/domaine/pipelines.ts` | Les trois pipelines, colonne par colonne, avec définition et sortie attendue |
-| `src/lib/domaine/regles.ts` | Priorité, seuil de qualification, compatibilité partenaire, champs obligatoires |
-| `src/lib/domaine/libelles.ts` | Libellés français des listes de valeurs |
-| `src/app/actions/` | Actions serveur des trois pipelines |
-| `src/app/leads`, `ventes`, `lld` | Tableaux et fiches détaillées |
-| `src/app/mes-actions` | Tâches échues et cartes sans suivi planifié |
-| `src/app/pilotage` | Indicateurs de §11 |
+```
+back/
+├── prisma/
+│   ├── schema.prisma        les 5 objets, les listes de valeurs, les relations
+│   ├── migrations/          l'historique du schéma
+│   └── seed.ts              données de démonstration, y compris les cas qui
+│                            déclenchent les alertes
+└── src/
+    ├── serveur.ts           montage des routes, CORS, sonde de santé
+    ├── domaine/             les 3 pipelines, les règles, les libellés
+    ├── routes/              une route par espace de travail
+    ├── crm/                 synchronisation RabbitMQ entrante
+    └── lib/                 Prisma, authentification, journal, références
+
+front/
+└── src/
+    ├── App.tsx              routage et garde d'accès
+    ├── api/client.ts        client HTTP, porte le jeton
+    ├── lib/                 auth Keycloak, types, libellés, colonnes, formats
+    ├── composants/          Carte, Tableau, Navigation, en-têtes
+    └── pages/               les écrans
+```
+
+`libelles.ts` et `pipelines.ts` existent des deux côtés : le back en a besoin
+pour ses réponses, le front pour l'affichage. C'est la rançon de la séparation —
+toute modification doit être reportée dans les deux.
 
 ## Le modèle de données
 
 Cinq objets reliés, et une règle : **le passage du lead à l'opportunité est un
 changement de maturité, pas un changement de fiche**. Le lead est conservé, les
 activités et les tâches lui restent attachées, l'opportunité pointe vers lui.
-De même, un dossier LLD est relié à une opportunité unique, sans créer de seconde
-fiche client.
+De même, un dossier LLD est relié à une opportunité unique, sans créer de
+seconde fiche client.
 
 ```
 Organisation ─┬─ Contact
@@ -77,20 +115,21 @@ confondent :
 | Étape commerciale | L'avancement de la vente | `etape` (pipeline 2) |
 | Statut LLD | Des événements de dossier et de contrat | `statut` (pipeline 3) |
 
-Le canal d'acquisition est un **champ filtrable**, jamais une colonne de pipeline :
-un même lead peut venir d'un salon puis se convertir après une relance téléphonique.
-La durée de LLD suit la même règle — c'est un champ numérique, pas une colonne.
+Le canal d'acquisition est un **champ filtrable**, jamais une colonne de
+pipeline : un même lead peut venir d'un salon puis se convertir après une
+relance téléphonique. La durée de LLD suit la même règle — c'est un champ
+numérique, pas une colonne.
 
 ## Les garde-fous implémentés
 
-Ces règles sont dans le code, pas seulement dans la documentation.
+Ces règles sont dans le code du back, pas seulement dans la documentation.
 
 **Aucune carte n'est perdue.** Une carte sans prochaine action datée ni attente
-formalisée est signalée en rouge sur le tableau et listée dans « Mes actions ».
-Les étapes terminales et les attentes explicitement datées en sont exclues.
+formalisée est signalée en rouge et listée dans « Mes actions ». Les étapes
+terminales et les attentes explicitement datées en sont exclues.
 
-**La priorité n'évalue jamais la solvabilité.** `calculerPriorite()` n'accepte que
-des critères commerciaux visibles — demande entrante, échéance proche, devis
+**La priorité n'évalue jamais la solvabilité.** `calculerPriorite()` n'accepte
+que des critères commerciaux visibles — demande entrante, échéance proche, devis
 demandé, client existant, valeur indicative. Aucune donnée financière n'y entre.
 
 **Le CRM n'interprète pas le partenaire.** Le pipeline LLD n'enregistre que des
@@ -109,8 +148,7 @@ factuels : client retire sa demande, dossier incomplet après relances, solution
 d'achat retenue, retour partenaire défavorable communiqué, etc.
 
 **Les valeurs ne sont jamais additionnées.** Montant de vente, mise en place,
-loyer mensuel et durée sont des champs distincts, affichés séparément sur les
-tableaux de bord.
+loyer mensuel et durée sont des champs distincts, affichés séparément.
 
 **La réattribution laisse une trace.** Le journal conserve l'ancien propriétaire,
 le nouveau, la date, l'auteur et le motif — ce dernier étant obligatoire.
@@ -125,100 +163,96 @@ le nouveau, la date, l'auteur et le motif — ce dernier étant obligatoire.
 | Direction | Lecture des rapports et des dossiers |
 
 La collaboratrice valide elle-même l'état « prêt à transmettre » : aucune
-automatisation ne le fait à sa place, même quand la checklist interne est complète.
+automatisation ne le fait à sa place, même quand la checklist interne est
+complète.
 
 ## Déploiement Coolify
+
+Trois ressources.
 
 ### 1. La base de données
 
 **New Resource → Database → PostgreSQL**. Coolify fournit une URL interne du
 type `postgres://user:motdepasse@nom-du-service:5432/base`. C'est elle qu'il
-faut, pas l'URL publique : les deux ressources partagent le réseau interne.
+faut, pas l'URL publique : les ressources partagent le réseau interne.
 
-### 2. L'application
+### 2. L'API
 
-**New Resource → Application → Private Repository (GitHub App)**, puis ce
-dépôt. Coolify détecte le `Dockerfile` à la racine — laisser le build pack sur
-`Dockerfile`, et non sur Nixpacks.
+**New Resource → Application → Private Repository**, ce dépôt, avec :
 
-Port exposé : **3000**.
+- **Base Directory** : `back`
+- **Build Pack** : Dockerfile
+- **Port** : 4000
 
-### 3. Le client Keycloak
+Variables d'environnement :
+
+| Variable | Obligatoire | Valeur |
+|---|---|---|
+| `DATABASE_URL` | oui | l'URL interne du service PostgreSQL |
+| `CORS_ORIGINES` | oui | l'URL publique du front |
+| `KEYCLOAK_ISSUER` | recommandé | `https://.../realms/NOM_DU_REALM` |
+| `KEYCLOAK_CLIENT_ID` | recommandé | `kanban-commercial` |
+| `SYNCHRO_SECRET` | non | si la synchro CRM est activée |
+| `RABBITMQ_*` | non | voir `.env.example` |
+
+⚠️ **Sans `KEYCLOAK_ISSUER`, l'API accepte un simple en-tête `x-utilisateur`**
+pour désigner le compte. Ce mode convient au développement local ; il ne doit
+jamais être exposé publiquement.
+
+### 3. L'interface
+
+Même dépôt, avec :
+
+- **Base Directory** : `front`
+- **Build Pack** : Dockerfile
+- **Port** : 80
+
+⚠️ Les variables `VITE_*` sont **figées dans le bundle au moment du build**.
+Elles se déclarent en **Build Arguments**, pas en variables d'environnement :
+
+| Argument | Valeur |
+|---|---|
+| `VITE_API_URL` | l'URL publique de l'API |
+| `VITE_KEYCLOAK_URL` | `https://plateform-auth.exemple.com` |
+| `VITE_KEYCLOAK_REALM` | le realm |
+| `VITE_KEYCLOAK_CLIENT_ID` | `kanban-commercial` |
+
+Aucun secret ne doit y figurer : tout visiteur peut les lire.
+
+### 4. Le client Keycloak
 
 Dans la console Keycloak, sur le realm concerné :
 
 1. **Clients → Create client**
    - Client ID : `kanban-commercial`
-   - Client authentication : **Off** pour un client public (PKCE), **On** pour
-     un client confidentiel
-   - Standard flow : coché ; Direct access grants : décoché
-2. **Valid redirect URIs** : `https://kanban.exemple.com/api/auth/callback/keycloak`
-3. **Valid post logout redirect URIs** : `https://kanban.exemple.com/*`
-4. **Web origins** : `https://kanban.exemple.com`
-5. Client confidentiel seulement : **Credentials** → copier le *Client secret*
-6. **Realm roles → Create role** : `kanban-commercial`, puis l'attribuer aux
+   - Client authentication : **Off** pour un client public (PKCE)
+   - Standard flow : coché
+2. **Valid redirect URIs** : `https://kanban.exemple.com/*`
+3. **Web origins** : `https://kanban.exemple.com`
+4. **Realm roles → Create role** : `kanban-commercial`, puis l'attribuer aux
    personnes autorisées.
 
-L'application s'adapte aux deux types : sans `AUTH_KEYCLOAK_SECRET`, elle
-déclare le client comme public et s'authentifie par PKCE.
+Ce rôle unique ouvre l'accès. Le rôle métier reste géré dans le kanban et
+rapproché par l'adresse e-mail.
 
-Le kanban étant une application serveur, un client **confidentiel** reste
-préférable — le secret ne quitte jamais Coolify et n'est jamais exposé au
-navigateur. Un client public convient néanmoins, PKCE protégeant l'échange du
-code d'autorisation.
+### 5. Après le premier déploiement
 
-Ce rôle unique ouvre l'accès à l'application. Le rôle métier — commercial,
-collaboratrice LLD, manager, direction — reste géré dans le kanban et rapproché
-par l'adresse e-mail : c'est un découpage propre à cette application, pas une
-notion d'annuaire.
+`docker-entrypoint.sh` applique `prisma migrate deploy` avant de démarrer l'API :
+les migrations suivent chaque déploiement sans intervention.
 
-### 4. Les variables d'environnement
-
-| Variable | Obligatoire | Valeur |
-|---|---|---|
-| `DATABASE_URL` | oui | l'URL interne du service PostgreSQL |
-| `AUTH_KEYCLOAK_ISSUER` | oui | `https://keycloak.../realms/NOM_DU_REALM` |
-| `AUTH_KEYCLOAK_ID` | oui | `kanban-commercial` |
-| `AUTH_KEYCLOAK_SECRET` | client confidentiel seulement | le *Client secret* de l'étape 3 ; vide pour un client public |
-| `AUTH_SECRET` | oui | `openssl rand -base64 32` — chiffre les cookies de session, sans rapport avec Keycloak |
-| `AUTH_URL` | oui | l'URL publique de l'application |
-| `KEYCLOAK_ROLE_ACCES` | non | par défaut `kanban-commercial` |
-| `SYNCHRO_SECRET` | non | un secret long et aléatoire, si la synchro CRM est activée |
-| `RABBITMQ_*` | non | voir `.env.example` |
-
-⚠️ **Sans les variables `AUTH_KEYCLOAK_*`, l'authentification est désactivée** et
-l'application retombe sur le sélecteur d'utilisateur, qui laisse choisir
-librement son rôle. Ce mode convient au développement local ; il ne doit jamais
-être exposé publiquement.
-
-Sans les variables `RABBITMQ_*`, la synchronisation reste inactive et
-l'application fonctionne de façon autonome.
-
-### 5. Déployer
-
-`docker-entrypoint.sh` applique `prisma migrate deploy` avant de démarrer le
-serveur : les migrations suivent chaque déploiement sans intervention. L'image
-utilise la sortie `standalone` de Next.js et tourne sous un utilisateur non
-privilégié.
-
-La base démarre **vide**. Pour la peupler avec le jeu de démonstration, ouvrir
-un terminal sur le conteneur de l'application et lancer :
+La base démarre **vide**. Pour la peupler avec le jeu de démonstration, ouvrir un
+terminal sur le conteneur de l'API :
 
 ```bash
-node prisma/seed.mjs
+node dist/seed.mjs
 ```
 
-(Le seed est transpilé au build : l'image de production n'embarque pas `tsx`.)
+⚠️ Le seed **efface toutes les données existantes**. Il ne doit jamais être
+exécuté sur une base contenant de vraies données.
 
-⚠️ Le seed **efface toutes les données existantes** avant de recréer le jeu de
-démonstration. Il ne doit jamais être exécuté sur une base contenant de vraies
-données.
-
-### 6. Créer les utilisateurs réels
-
-Le MVP n'a pas d'écran d'administration des comptes. Sur une base vide sans
-seed, aucun utilisateur n'existe et le sélecteur reste vide. Les créer en SQL
-depuis le terminal du service PostgreSQL :
+Sans seed, aucun utilisateur n'existe et la connexion aboutira sur « aucun compte
+ne vous correspond ». Les créer en SQL, avec **les mêmes e-mails que dans
+Keycloak** :
 
 ```sql
 INSERT INTO utilisateurs (id, email, nom, prenom, role, actif, "creeLe", "majLe")
@@ -226,94 +260,65 @@ VALUES (gen_random_uuid()::text, 'prenom.nom@selfizee.fr', 'Nom', 'Prénom',
         'COMMERCIAL', true, now(), now());
 ```
 
-Rôles disponibles : `COMMERCIAL`, `COLLABORATRICE_LLD`, `MANAGER`, `DIRECTION`.
+Rôles : `COMMERCIAL`, `COLLABORATRICE_LLD`, `MANAGER`, `DIRECTION`.
 
 ## Synchronisation avec le CRM Selfizee
 
 **Sens unique : CRM → kanban.** Le CRM fait autorité sur l'identité du client ;
-le kanban ne lui réécrit jamais rien. C'est le choix le plus sûr : aucune
-modification du CRM n'est nécessaire, et aucune donnée de référence ne risque
-d'être écrasée depuis le kanban.
-
-### Ce qui circule
+le kanban ne lui réécrit jamais rien.
 
 | Objet du kanban | Table CRM | État |
 |---|---|---|
 | Organisation | `clients` | Actif — le CRM publie déjà ces événements |
-| Contact | `client_contacts` | Nécessite une ligne côté CRM (voir plus bas) |
+| Contact | `client_contacts` | Nécessite une ligne côté CRM |
 | Devis | `devis` | Nécessite une ligne côté CRM |
 | Lead, opportunité, dossier LLD | — | Propres au kanban, jamais synchronisés |
 
 Le CRM publie sur un bus RabbitMQ à chaque modification, avec des clés de
-routage `crm.{table}.{inserted,updated,deleted}`. Le kanban lit sa propre queue
-par l'API HTTP de management — même approche que le CRM, parce que le port AMQP
-n'est pas joignable sous Coolify.
+routage `crm.{table}.{inserted,updated,deleted}`. Le kanban lit sa queue par
+l'API HTTP de management — même approche que le CRM, le port AMQP n'étant pas
+joignable sous Coolify.
 
-### Mise en service
-
-Renseigner les variables d'environnement (voir `.env.example`), puis déclencher
-le drainage périodiquement :
+Déclencher le drainage périodiquement :
 
 ```bash
-curl -X POST https://kanban.exemple.com/api/synchro-crm \
+curl -X POST https://kanban-api.exemple.com/api/synchro \
   -H "x-synchro-secret: $SYNCHRO_SECRET"
 ```
 
-Une tâche planifiée Coolify toutes les deux minutes suffit. La réponse indique
-combien de messages restent à traiter (`encoreATraiter`), ce qui permet
-d'enchaîner un appel si le retard est important.
-
-Sans les variables `RABBITMQ_*`, la synchronisation reste inactive et le kanban
-fonctionne de façon autonome. La route refuse tout appel si `SYNCHRO_SECRET`
-n'est pas défini : mieux vaut une synchro inactive qu'un point d'écriture ouvert.
-
-L'écran **Synchro CRM** (réservé au manager) montre les 50 derniers événements
-reçus, leur issue et le nombre de messages en attente. C'est l'endroit où
-diagnostiquer une fiche qui n'est pas remontée.
+Une tâche planifiée toutes les deux minutes suffit.
 
 ### Garanties
 
 - **Idempotence** — le bus livre « au moins une fois » ; une empreinte unique en
   base écarte les relivraisons.
-- **Désordre** — un événement antérieur à la version enregistrée est ignoré
-  plutôt qu'appliqué à rebours.
+- **Désordre** — un événement antérieur à la version enregistrée est ignoré.
 - **Non-régression** — seuls les champs dont le CRM est maître sont écrits. Le
-  segment affiné par le commercial, le propriétaire, les notes et tout le travail
-  commercial sont préservés.
-- **Rapprochement** — avant de créer une fiche, le kanban cherche une
-  correspondance par SIREN, e-mail, téléphone puis nom, pour ne pas dupliquer une
-  organisation saisie à la main.
-- **Suppression** — une fiche supprimée côté CRM est détachée, jamais effacée :
-  les leads, opportunités et activités qui s'y rattachent sont conservés.
-
-Ces garanties sont vérifiées par `npx tsx scripts/test-synchro.ts`, qui injecte
-des événements représentatifs sans passer par le bus.
+  segment affiné par le commercial, le propriétaire et les notes sont préservés.
+- **Rapprochement** — recherche par SIREN, e-mail, téléphone puis nom avant toute
+  création, pour ne pas dupliquer une fiche saisie à la main.
+- **Suppression** — une fiche supprimée au CRM est détachée, jamais effacée.
 
 ### Pour étendre aux contacts et aux devis
 
-Le CRM publie déjà les clients. Pour les contacts et les devis, il manque une
-ligne dans chacune des deux tables côté CRM :
+Une ligne à ajouter côté CRM, dans `ClientContactsTable` et `DevisTable` :
 
 ```php
 $this->addBehavior('EventPublisher');
 ```
 
-dans `ClientContactsTable` et `DevisTable`. Le reste — liaison de la queue,
-correspondance des champs, traitement — est déjà en place côté kanban.
-
 ## Points à trancher avant le paramétrage définitif
 
-Le document les identifie comme plus importants que la couleur des colonnes.
-Ils sont implémentés avec des valeurs par défaut, à ajuster :
+Implémentés avec des valeurs par défaut, à ajuster :
 
-- **Délai de première prise en charge** — actuellement 8 h ouvrées pour un entrant,
-  72 h pour la prospection (`DELAI_PRISE_EN_CHARGE_HEURES`).
+- **Délai de première prise en charge** — 8 h ouvrées pour un entrant, 72 h pour
+  la prospection (`DELAI_PRISE_EN_CHARGE_HEURES`).
 - **Définition de « gagné »** — commande finalisée ou livraison confirmée.
 - **Personne qui tient le pool des entrants**.
-- **Segments à conserver** — la liste sera ajustée après un mois de données réelles.
+- **Segments à conserver** — à ajuster après un mois de données réelles.
 - **Informations à confirmer avec GRENKE** — durées acceptées, pièces exigées,
-  canal de transmission, délais de réponse et jalons réellement suivis. Tant que
-  cette confirmation n'a pas eu lieu, le suivi partenaire reste manuel et factuel.
+  canal de transmission, délais de réponse. Tant que cette confirmation n'a pas
+  eu lieu, le suivi partenaire reste manuel et factuel.
 
 ## RGPD
 
@@ -330,11 +335,16 @@ coffre-fort documentaire.
 ## Commandes
 
 ```bash
+# API (dans back/)
 npm run dev          # développement
-npm run build        # build de production (génère le client Prisma)
-npm run db:migrate   # créer une migration en développement
-npm run db:deploy    # appliquer les migrations en production
+npm run build        # compilation TypeScript
+npm run db:migrate   # créer une migration
+npm run db:deploy    # appliquer les migrations
 npm run db:studio    # explorer la base
 npm run db:seed      # réinitialiser le jeu de démonstration
-npm run lint
+
+# Interface (dans front/)
+npm run dev          # développement
+npm run build        # bundle de production
+npm run preview      # servir le bundle localement
 ```
