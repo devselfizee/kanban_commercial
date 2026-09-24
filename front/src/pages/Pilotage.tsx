@@ -12,16 +12,26 @@
 import { useApi } from "@/hooks/useApi";
 import { Chargement, Erreur } from "@/composants/Etats";
 import { euros } from "@/lib/format";
-import { LIBELLE_CANAL, LIBELLE_MODE_ACQUISITION } from "@/lib/libelles";
-import type { CanalDetaille, ModeAcquisition } from "@/lib/types";
+import {
+  LIBELLE_CANAL,
+  LIBELLE_ETAPE,
+  LIBELLE_MODE_ACQUISITION,
+  LIBELLE_STATUT_LLD,
+} from "@/lib/libelles";
+import type {
+  CanalDetaille,
+  EtapeCommerciale,
+  ModeAcquisition,
+  StatutLld,
+} from "@/lib/types";
 
 type Reponse = {
   delaiMoyenHeures: number | null;
   delaiQualifMoyen: number | null;
   couverture: number;
   cycleMoyen: number | null;
-  parEtape: { libelle: string; nb: number; ventes: number; loyers: number }[];
-  stockLld: { libelle: string; nb: number; valeur: number }[];
+  parEtape: { etape: EtapeCommerciale; nb: number; ventes: number; loyers: number }[];
+  stockLld: { statut: StatutLld; nb: number; valeur: number }[];
   parCanal: {
     canal: CanalDetaille;
     mode: ModeAcquisition;
@@ -104,8 +114,8 @@ export default function Pilotage() {
             </thead>
             <tbody className="divide-y divide-[var(--trait)]">
               {d.parEtape.map((e) => (
-                <tr key={e.libelle}>
-                  <td className="py-1.5">{e.libelle}</td>
+                <tr key={e.etape}>
+                  <td className="py-1.5">{LIBELLE_ETAPE[e.etape]}</td>
                   <td className="py-1.5 text-right tabular-nums">{e.nb}</td>
                   <td className="py-1.5 text-right tabular-nums">
                     {e.ventes > 0 ? euros(e.ventes) : "—"}
@@ -133,8 +143,8 @@ export default function Pilotage() {
             </thead>
             <tbody className="divide-y divide-[var(--trait)]">
               {d.stockLld.map((s) => (
-                <tr key={s.libelle}>
-                  <td className="py-1.5">{s.libelle}</td>
+                <tr key={s.statut}>
+                  <td className="py-1.5">{LIBELLE_STATUT_LLD[s.statut]}</td>
                   <td className="py-1.5 text-right tabular-nums">{s.nb}</td>
                   <td className="py-1.5 text-right tabular-nums">
                     {s.valeur > 0 ? euros(s.valeur) : "—"}

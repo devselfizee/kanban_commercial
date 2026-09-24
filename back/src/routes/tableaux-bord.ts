@@ -10,7 +10,7 @@ import { Router } from "express";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { voitToutesLesCartes } from "../lib/auth";
-import { COLONNES_LLD, COLONNES_OPPORTUNITE } from "../domaine/pipelines";
+import { ETAPES_OPPORTUNITE, STATUTS_LLD } from "../domaine/etapes";
 import {
   estTerminaleLead,
   estTerminaleLld,
@@ -244,10 +244,16 @@ routes.get("/pilotage", async (_requete, reponse) => {
       : 100;
 
   // --- Pipeline par étape : ventes et LLD séparées -------------------------
-  const parEtape = COLONNES_OPPORTUNITE.filter((c) => !c.terminale).map((c) => {
-    const lot = opportunites.filter((o) => o.etape === c.cle);
+  //
+  // Les étapes terminales sont écartées : un pipeline montre ce qui reste à
+  // faire, pas ce qui est clos.
+  const parEtape = ETAPES_OPPORTUNITE.filter(
+    (e) => !estTerminaleOpportunite(e),
+  ).map((etape) => {
+    const lot = opportunites.filter((o) => o.etape === etape);
     return {
-      libelle: c.libelle,
+      // Un code, pas un libellé : la traduction en français appartient au front.
+      etape,
       nb: lot.length,
       ventes: lot
         .filter((o) => o.projetRecherche !== "LLD")
@@ -272,11 +278,11 @@ routes.get("/pilotage", async (_requete, reponse) => {
   const perdues = opportunites.filter((o) => o.etape === "PERDU_ABANDONNE");
 
   // --- Stock LLD par statut ------------------------------------------------
-  const stockLld = COLONNES_LLD.map((c) => ({
-    libelle: c.libelle,
-    nb: dossiers.filter((d) => d.statut === c.cle).length,
+  const stockLld = STATUTS_LLD.map((statut) => ({
+    statut,
+    nb: dossiers.filter((d) => d.statut === statut).length,
     valeur: dossiers
-      .filter((d) => d.statut === c.cle)
+      .filter((d) => d.statut === statut)
       .reduce((s, d) => s + Number(d.loyerMensuel ?? 0), 0),
   })).filter((s) => s.nb > 0);
 
