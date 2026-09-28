@@ -32,7 +32,7 @@ import type { Utilisateur } from "./lib/types";
 type Etat =
   | { phase: "chargement" }
   | { phase: "anonyme" }
-  | { phase: "sans_compte"; message: string }
+  | { phase: "sans_compte"; message: string; code?: string }
   | { phase: "connecte"; utilisateur: Utilisateur };
 
 export default function App() {
@@ -51,7 +51,9 @@ export default function App() {
       if (e instanceof ErreurApi && e.statut === 403) {
         // Authentifié côté Keycloak, mais inconnu du kanban ou sans le rôle :
         // le message du serveur dit précisément lequel des deux.
-        setEtat({ phase: "sans_compte", message: e.message });
+        // Deux refus distincts, deux démarches différentes : le code les
+        // sépare, le message seul ne suffirait pas.
+        setEtat({ phase: "sans_compte", message: e.message, code: e.code });
       } else {
         setEtat({ phase: "anonyme" });
       }
@@ -75,6 +77,7 @@ export default function App() {
     return (
       <Connexion
         message={etat.phase === "sans_compte" ? etat.message : undefined}
+        code={etat.phase === "sans_compte" ? etat.code : undefined}
         onUtilisateurChoisi={() => void chargerIdentite()}
       />
     );

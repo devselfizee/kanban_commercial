@@ -30,10 +30,13 @@ type UtilisateurLocal = {
 
 export default function Connexion({
   message,
+  code,
   onUtilisateurChoisi,
 }: {
   /** Message du serveur quand l'accès est refusé malgré une authentification. */
   message?: string;
+  /** `ROLE_MANQUANT` ou `COMPTE_INCONNU` : deux refus, deux démarches. */
+  code?: string;
   onUtilisateurChoisi: () => void;
 }) {
   const [equipe, setEquipe] = useState<UtilisateurLocal[]>([]);
@@ -66,9 +69,19 @@ export default function Connexion({
               {message}
             </p>
             <p className="mt-3 text-xs text-[var(--texte-doux)]">
-              Demandez à votre manager de créer votre compte, en précisant le
-              rôle souhaité : commercial, collaboratrice LLD, manager ou
-              direction.
+              {code === "ROLE_MANQUANT" ? (
+                <>
+                  L'accès s'ouvre depuis Keycloak : demandez à l'administrateur
+                  de vous attribuer ce rôle. Votre compte dans le kanban, lui,
+                  est peut-être déjà créé.
+                </>
+              ) : (
+                <>
+                  Demandez à votre manager de créer votre compte, en précisant
+                  le rôle souhaité : commercial, collaboratrice LLD, manager ou
+                  direction.
+                </>
+              )}
             </p>
             <button
               onClick={seDeconnecter}
