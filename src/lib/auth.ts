@@ -43,14 +43,24 @@ export function definirUtilisateurLocal(id: string | null) {
   }
 }
 
+/** Vrai au retour d'une déconnexion volontaire. */
+function retourDeDeconnexion(): boolean {
+  return new URLSearchParams(window.location.search).has("deconnecte");
+}
+
 /**
  * Initialise Keycloak et exige une session.
  *
- * `check-sso` plutôt que `login-required` : le premier laisse la page s'afficher
- * pour proposer une connexion explicite, le second redirige avant tout rendu.
+ * `login-required` redirige vers Keycloak avant tout rendu : l'application est
+ * réservée, un écran intermédiaire pour cliquer « Se connecter » n'ajouterait
+ * qu'une étape. Le retour se fait sur la page demandée.
  */
 export async function initialiserAuth(): Promise<boolean> {
   if (!authentificationActive) return true;
+
+  // Après une déconnexion, ne pas relancer la connexion : l'utilisateur vient
+  // de demander le contraire.
+  if (retourDeDeconnexion()) return false;
 
   keycloak = new Keycloak({
     url: URL_KEYCLOAK!,
@@ -59,7 +69,7 @@ export async function initialiserAuth(): Promise<boolean> {
   });
 
   const authentifie = await keycloak.init({
-    onLoad: "check-sso",
+    onLoad: "login-required",
     pkceMethod: "S256",
     checkLoginIframe: false,
   });
@@ -79,12 +89,25 @@ export async function initialiserAuth(): Promise<boolean> {
 }
 
 export function seConnecter() {
-  keycloak?.login();
+  // Au retour d'une déconnexion, l'initialisation a été court-circuitée :
+  // `keycloak` n'existe pas, et le bouton serait inerte. Recharger sans le
+  // marqueur relance `login-required`, donc la redirection.
+  if (!keycloak) {
+    window.location.href = window.location.origin;
+    return;
+  }
+  keycloak.login();
 }
 
 export function seDeconnecter() {
   if (authentificationActive) {
-    keycloak?.logout({ redirectUri: window.location.origin });
+    // `login-required` relancerait la connexion dès le retour sur
+    // l'application : on revient avec un marqueur, qui affiche l'écran de
+    // sortie au lieu de rediriger. Sans lui, se déconnecter ne servirait à
+    // rien — on repartirait aussitôt vers Keycloak.
+    keycloak?.logout({
+      redirectUri: `${window.location.origin}/?deconnecte=1`,
+    });
   } else {
     definirUtilisateurLocal(null);
     window.location.reload();

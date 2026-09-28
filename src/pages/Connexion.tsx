@@ -91,15 +91,18 @@ export default function Connexion({
             </button>
           </>
         ) : authentificationActive ? (
+          /* Seul cas où cet écran s'affiche : l'utilisateur vient de se
+             déconnecter. L'arrivée sur l'application, elle, part directement
+             sur Keycloak. */
           <>
             <p className="mt-2 text-sm text-[var(--texte-doux)]">
-              Connectez-vous avec votre compte Selfizee.
+              Vous êtes déconnecté.
             </p>
             <button
               onClick={seConnecter}
               className="mt-6 w-full rounded-lg bg-[var(--selfizee-600)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--selfizee-700)]"
             >
-              Se connecter
+              Se reconnecter
             </button>
           </>
         ) : (
