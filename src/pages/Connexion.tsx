@@ -18,6 +18,7 @@ import {
   seDeconnecter,
 } from "@/lib/auth";
 import { LIBELLE_ROLE } from "@/lib/libelles";
+import { BASE } from "@/api/client";
 import type { Role } from "@/lib/types";
 
 type UtilisateurLocal = {
@@ -40,7 +41,7 @@ export default function Connexion({
   useEffect(() => {
     if (authentificationActive) return;
     // Mode local : la liste alimente le sélecteur, avant toute authentification.
-    fetch("/api/utilisateurs-locaux")
+    fetch(`${BASE}/api/utilisateurs-locaux`)
       .then((r) => (r.ok ? r.json() : []))
       .then(setEquipe)
       .catch(() => setEquipe([]));

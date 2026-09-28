@@ -12,7 +12,14 @@ import {
   utilisateurLocal,
 } from "@/lib/auth";
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
+/**
+ * Racine de l'API. Vide en développement : le proxy Vite relaie `/api`.
+ *
+ * Exportée parce que la page de connexion appelle l'API avant d'avoir une
+ * identité à attacher, donc sans passer par `api` — mais elle a besoin de la
+ * même racine, sans quoi la requête partirait vers nginx qui sert le front.
+ */
+export const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
 
 export class ErreurApi extends Error {
   constructor(
