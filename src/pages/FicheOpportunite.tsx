@@ -83,6 +83,26 @@ type OpportuniteDetaillee = {
     montant: number | null;
     dateEnvoi: string | null;
   }[];
+  /**
+   * Les devis du CRM, lus à la demande — plus de 400 000 en base, jamais
+   * synchronisés. L'état distingue « aucun devis » de « je n'ai pas pu
+   * regarder », qui ne veulent pas dire la même chose.
+   */
+  devisCrm:
+    | {
+        etat: "ok";
+        devis: {
+          id: number;
+          reference: string | null;
+          objet: string | null;
+          statut: string | null;
+          dateCreation: string | null;
+          montantHt: number | null;
+        }[];
+        total: number;
+      }
+    | { etat: "non_configure" }
+    | { etat: "indisponible"; detail: string };
   dossierLld: {
     id: string;
     reference: string;
@@ -297,6 +317,50 @@ export default function FicheOpportunite() {
               </li>
             ))}
           </ul>
+        </Section>
+      )}
+
+      {/* Devis du CRM : lus à l'ouverture de la fiche, jamais recopiés. */}
+      {opp.devisCrm.etat === "ok" && opp.devisCrm.devis.length > 0 && (
+        <Section titre="Devis du CRM">
+          <ul className="divide-y divide-[var(--trait)] text-sm">
+            {opp.devisCrm.devis.map((d) => (
+              <li key={d.id} className="py-1.5">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="font-mono text-[11px] text-[var(--texte-doux)]">
+                    {d.reference ?? `#${d.id}`}
+                  </span>
+                  <span className="text-xs text-[var(--texte-doux)]">
+                    {euros(d.montantHt) ?? "—"} HT ·{" "}
+                    {dateLongue(d.dateCreation) ?? "—"}
+                  </span>
+                </div>
+                {d.objet && (
+                  <p className="text-[var(--texte-fort)]">{d.objet}</p>
+                )}
+                {d.statut && (
+                  <span className="text-[10px] text-[var(--texte-tres-doux)]">
+                    {d.statut}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+          {opp.devisCrm.total > opp.devisCrm.devis.length && (
+            <p className="mt-2 text-[11px] text-[var(--texte-doux)]">
+              {opp.devisCrm.devis.length} des {opp.devisCrm.total} devis de ce
+              client, les plus récents d'abord.
+            </p>
+          )}
+        </Section>
+      )}
+
+      {/* Un CRM injoignable n'est pas un client sans devis : le dire. */}
+      {opp.devisCrm.etat === "indisponible" && (
+        <Section titre="Devis du CRM">
+          <p className="text-sm text-[var(--texte-doux)]">
+            Liste indisponible — {opp.devisCrm.detail}
+          </p>
         </Section>
       )}
 
