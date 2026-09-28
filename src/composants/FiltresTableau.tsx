@@ -12,22 +12,38 @@
  */
 
 import { useSearchParams } from "react-router-dom";
+import { useApi } from "@/hooks/useApi";
 import { LIBELLE_SEGMENT } from "@/lib/libelles";
 import type { SegmentClient } from "@/lib/types";
+import SelecteurRecherche from "./SelecteurRecherche";
 
 /** Ce qu'une carte doit exposer pour être filtrable. */
 export type CarteFiltrable = {
   estParticulier: boolean;
   segment: SegmentClient | null;
-  responsable: string | null;
+  /** L'identifiant, pas le nom : des noms venus du CRM ont des espaces en trop. */
+  responsableId: string | null;
 };
+
+type Membre = { id: string; prenom: string; nom: string };
 
 type TypeClient = "tous" | "pro" | "particulier";
 
 const SANS_RESPONSABLE = "__aucun__";
 
-export function useFiltres<T extends CarteFiltrable>(cartes: T[]) {
+/**
+ * @param rolesEquipe les rôles proposés comme responsables — commerciaux et
+ *   managers pour les leads et les ventes, collaboratrices LLD pour les
+ *   dossiers de financement.
+ */
+export function useFiltres<T extends CarteFiltrable>(
+  cartes: T[],
+  rolesEquipe: string,
+) {
   const [params, setParams] = useSearchParams();
+  // Toute l'équipe, pas seulement les responsables des cartes affichées : on
+  // doit pouvoir choisir un commercial même s'il n'a encore aucune carte.
+  const { donnees: equipe } = useApi<Membre[]>(`/utilisateurs?role=${rolesEquipe}`);
 
   const type = (params.get("type") as TypeClient | null) ?? "tous";
   const segment = params.get("segment") ?? "";
@@ -47,8 +63,8 @@ export function useFiltres<T extends CarteFiltrable>(cartes: T[]) {
       (!segment || c.segment === segment) &&
       (!responsable ||
         (responsable === SANS_RESPONSABLE
-          ? !c.responsable
-          : c.responsable === responsable)),
+          ? !c.responsableId
+          : c.responsableId === responsable)),
   );
 
   // Les listes ne proposent que ce qui existe sur le tableau : un segment
@@ -57,9 +73,12 @@ export function useFiltres<T extends CarteFiltrable>(cartes: T[]) {
     ...new Set(cartes.map((c) => c.segment).filter((s): s is SegmentClient => !!s)),
   ].sort((a, b) => LIBELLE_SEGMENT[a].localeCompare(LIBELLE_SEGMENT[b]));
   const responsables = [
-    ...new Set(cartes.map((c) => c.responsable).filter((r): r is string => !!r)),
-  ].sort((a, b) => a.localeCompare(b));
-  const aSansResponsable = cartes.some((c) => !c.responsable);
+    ...(equipe ?? []).map((m) => ({
+      valeur: m.id,
+      libelle: `${m.prenom} ${m.nom}`.replace(/\s+/g, " ").trim(),
+    })),
+  ].sort((a, b) => a.libelle.localeCompare(b.libelle, "fr"));
+  responsables.push({ valeur: SANS_RESPONSABLE, libelle: "Non attribué" });
 
   const actif = type !== "tous" || !!segment || !!responsable;
 
@@ -73,7 +92,6 @@ export function useFiltres<T extends CarteFiltrable>(cartes: T[]) {
         responsable={responsable}
         segments={segments}
         responsables={responsables}
-        aSansResponsable={aSansResponsable}
         nbAffichees={filtrees.length}
         nbTotal={cartes.length}
         actif={actif}
@@ -94,7 +112,6 @@ function BarreFiltres({
   responsable,
   segments,
   responsables,
-  aSansResponsable,
   nbAffichees,
   nbTotal,
   actif,
@@ -105,8 +122,7 @@ function BarreFiltres({
   segment: string;
   responsable: string;
   segments: SegmentClient[];
-  responsables: string[];
-  aSansResponsable: boolean;
+  responsables: { valeur: string; libelle: string }[];
   nbAffichees: number;
   nbTotal: number;
   actif: boolean;
@@ -165,24 +181,13 @@ function BarreFiltres({
         </select>
       )}
 
-      {(responsables.length > 1 || aSansResponsable) && (
-        <select
-          aria-label="Responsable"
-          value={responsable}
-          onChange={(e) => onChanger("responsable", e.target.value)}
-          className={classeSelect}
-        >
-          <option value="">Tous les responsables</option>
-          {responsables.map((r) => (
-            <option key={r} value={r}>
-              {r}
-            </option>
-          ))}
-          {aSansResponsable && (
-            <option value={SANS_RESPONSABLE}>Non attribué</option>
-          )}
-        </select>
-      )}
+      <SelecteurRecherche
+        etiquette="Responsable"
+        libelleVide="Tous les responsables"
+        options={responsables}
+        valeur={responsable}
+        onChanger={(v) => onChanger("responsable", v)}
+      />
 
       {actif && (
         <>

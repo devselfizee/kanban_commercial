@@ -44,6 +44,7 @@ type DossierApi = {
   prochaineActionLe: string | null;
   prochaineActionLabel: string | null;
   prochaineActionEnRetard: boolean;
+  responsableId: string | null;
   responsable: string | null;
   derniereActivite: { objet: string; date: string } | null;
   nbActivites: number;
@@ -55,7 +56,7 @@ type DossierApi = {
 export default function Lld() {
   const navigate = useNavigate();
   const { donnees, chargement, erreur, recharger } = useApi<DossierApi[]>("/lld");
-  const { filtrees, barre } = useFiltres(donnees ?? []);
+  const { filtrees, barre } = useFiltres(donnees ?? [], "COLLABORATRICE_LLD,MANAGER");
 
   if (chargement) return <Chargement quoi="les dossiers LLD" />;
   if (erreur) return <Erreur message={erreur} onReessayer={recharger} />;

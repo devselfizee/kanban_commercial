@@ -43,6 +43,7 @@ type OpportuniteApi = {
   dateCible: string | null;
   dateEvenement: string | null;
   contact: string | null;
+  responsableId: string | null;
   responsable: string | null;
   prochaineActionLe: string | null;
   prochaineActionLabel: string | null;
@@ -69,7 +70,7 @@ export default function Ventes() {
   const navigate = useNavigate();
   const { donnees, chargement, erreur, recharger } =
     useApi<ReponseVentes>("/opportunites");
-  const { filtrees, actif, barre } = useFiltres(donnees?.cartes ?? []);
+  const { filtrees, actif, barre } = useFiltres(donnees?.cartes ?? [], "COMMERCIAL,MANAGER");
 
   if (chargement) return <Chargement quoi="les opportunités" />;
   if (erreur) return <Erreur message={erreur} onReessayer={recharger} />;

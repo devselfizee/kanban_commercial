@@ -48,6 +48,7 @@ type LeadApi = {
   besoinResume: string | null;
   horizonIndicatif: string | null;
   contact: string | null;
+  responsableId: string | null;
   responsable: string | null;
   prochaineActionLe: string | null;
   prochaineActionLabel: string | null;
@@ -65,7 +66,7 @@ export default function Leads() {
   const { donnees, chargement, erreur, recharger } =
     useApi<LeadApi[]>("/leads");
   // Appelé avant les retours anticipés : un hook ne peut pas être conditionnel.
-  const { filtrees, barre } = useFiltres(donnees ?? []);
+  const { filtrees, barre } = useFiltres(donnees ?? [], "COMMERCIAL,MANAGER");
 
   if (chargement) return <Chargement quoi="les leads" />;
   if (erreur) return <Erreur message={erreur} onReessayer={recharger} />;
