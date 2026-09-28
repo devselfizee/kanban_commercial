@@ -25,7 +25,20 @@ import type {
   StatutLld,
 } from "@/lib/types";
 
+type MoisSignes = {
+  mois: string;
+  lldNb: number;
+  lldHt: number;
+  autresNb: number;
+  autresHt: number;
+};
+
 type Reponse = {
+  /** Devis signés dans le CRM, lus à la demande. */
+  affairesSignees:
+    | { etat: "ok"; mois: MoisSignes[] }
+    | { etat: "non_configure" }
+    | { etat: "indisponible"; detail: string };
   delaiMoyenHeures: number | null;
   delaiQualifMoyen: number | null;
   couverture: number;
@@ -100,6 +113,8 @@ export default function Pilotage() {
           aide="Entre création de l'opportunité et issue gagnée / perdue."
         />
       </section>
+
+      <AffairesSignees donnees={d.affairesSignees} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Bloc titre="Pipeline commercial par étape">
@@ -242,6 +257,112 @@ export default function Pilotage() {
         <Tuile libelle="Dossiers LLD en cours" valeur={String(d.dossiersEnCours)} />
       </section>
     </div>
+  );
+}
+
+const NOM_MOIS = new Intl.DateTimeFormat("fr-FR", { month: "short", year: "numeric" });
+
+function libelleMois(mois: string): string {
+  const [a, m] = mois.split("-").map(Number);
+  return NOM_MOIS.format(new Date(a, m - 1, 1));
+}
+
+/**
+ * Affaires signées dans le CRM sur douze mois (§11).
+ *
+ * La location financière GRENKE et les autres affaires sont deux séries
+ * distinctes, jamais additionnées : une vente et un financement ne répondent
+ * pas à la même question. Le mois en cours est incomplet, et le dit.
+ */
+function AffairesSignees({ donnees }: { donnees: Reponse["affairesSignees"] }) {
+  if (donnees.etat === "non_configure") return null;
+
+  if (donnees.etat === "indisponible") {
+    return (
+      <Bloc titre="Affaires signées dans le CRM">
+        <p className="text-sm text-[var(--texte-doux)]">
+          Chiffres indisponibles — {donnees.detail}
+        </p>
+      </Bloc>
+    );
+  }
+
+  const mois = donnees.mois;
+  const cumul = mois.reduce(
+    (s, m) => ({
+      lldNb: s.lldNb + m.lldNb,
+      lldHt: s.lldHt + m.lldHt,
+      autresNb: s.autresNb + m.autresNb,
+      autresHt: s.autresHt + m.autresHt,
+    }),
+    { lldNb: 0, lldHt: 0, autresNb: 0, autresHt: 0 },
+  );
+  const moisCourant = mois[mois.length - 1]?.mois;
+
+  return (
+    <section className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Tuile
+          libelle="Location financière GRENKE — 12 mois"
+          valeur={euros(cumul.lldHt) ?? "—"}
+          aide={`${cumul.lldNb} devis signés facturés à GRENKE.`}
+        />
+        <Tuile
+          libelle="Autres affaires signées — 12 mois"
+          valeur={euros(cumul.autresHt) ?? "—"}
+          aide={`${cumul.autresNb} devis signés : ventes et locations directes.`}
+        />
+      </div>
+
+      <Bloc titre="Affaires signées par mois">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[28rem] text-sm tabular-nums">
+            <thead>
+              <tr className="text-[10px] uppercase tracking-wide text-[var(--texte-doux)]">
+                <th className="py-1 text-left font-medium">Mois</th>
+                <th className="py-1 text-right font-medium" colSpan={2}>
+                  Location financière GRENKE
+                </th>
+                <th className="py-1 text-right font-medium" colSpan={2}>
+                  Autres affaires
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--trait)]">
+              {[...mois].reverse().map((m) => (
+                <tr key={m.mois}>
+                  <td className="py-1.5 text-[var(--texte-fort)]">
+                    {libelleMois(m.mois)}
+                    {m.mois === moisCourant && (
+                      <span className="ml-1.5 text-[10px] text-[var(--texte-tres-doux)]">
+                        en cours
+                      </span>
+                    )}
+                  </td>
+                  <td className="py-1.5 text-right text-[var(--texte-doux)]">
+                    {m.lldNb || "—"}
+                  </td>
+                  <td className="py-1.5 pl-3 text-right font-medium text-[var(--texte-fort)]">
+                    {m.lldNb ? euros(m.lldHt) : "—"}
+                  </td>
+                  <td className="py-1.5 pl-6 text-right text-[var(--texte-doux)]">
+                    {m.autresNb || "—"}
+                  </td>
+                  <td className="py-1.5 pl-3 text-right font-medium text-[var(--texte-fort)]">
+                    {m.autresNb ? euros(m.autresHt) : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-2 text-[10px] italic text-[var(--texte-doux)]">
+          Devis signés dans le CRM (accepté, acompte, facturé, payé…), comptés au
+          mois de leur création, montants HT après remise. Location financière
+          et autres affaires ne s'additionnent pas.
+        </p>
+      </Bloc>
+    </section>
   );
 }
 
