@@ -98,6 +98,8 @@ type OpportuniteDetaillee = {
           statut: string | null;
           dateCreation: string | null;
           montantHt: number | null;
+          /** Facturé à GRENKE : affaire financée en location financière. */
+          financeGrenke: boolean;
         }[];
         total: number;
       }
@@ -327,8 +329,18 @@ export default function FicheOpportunite() {
             {opp.devisCrm.devis.map((d) => (
               <li key={d.id} className="py-1.5">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="font-mono text-[11px] text-[var(--texte-doux)]">
-                    {d.reference ?? `#${d.id}`}
+                  <span className="flex items-center gap-1.5">
+                    <span className="font-mono text-[11px] text-[var(--texte-doux)]">
+                      {d.reference ?? `#${d.id}`}
+                    </span>
+                    {/* Un devis facturé à GRENKE est une affaire en LLD : le
+                        signaler, c'est montrer qu'un dossier de financement
+                        existe ou devrait exister. */}
+                    {d.financeGrenke && (
+                      <span className="rounded bg-[var(--selfizee-100)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--selfizee-700)]">
+                        Financement GRENKE
+                      </span>
+                    )}
                   </span>
                   <span className="text-xs text-[var(--texte-doux)]">
                     {euros(d.montantHt) ?? "—"} HT ·{" "}
