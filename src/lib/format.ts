@@ -101,7 +101,13 @@ export function titreCarte(parties: {
   ville?: string | null;
   projet?: string | null;
 }): string {
-  return [parties.nom, parties.ville, parties.projet]
+  // Le projet est tronqué : une carte se lit en trois secondes (§3), et une
+  // donnée importée trop longue ne doit jamais l'envahir. Le texte complet
+  // reste sur la fiche.
+  const projet = parties.projet?.replace(/\s+/g, " ").trim();
+  const projetCourt =
+    projet && projet.length > 90 ? `${projet.slice(0, 89).trimEnd()}…` : projet;
+  return [parties.nom, parties.ville, projetCourt]
     .map((p) => p?.trim())
     .filter(Boolean)
     .join(" — ");
