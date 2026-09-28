@@ -36,28 +36,56 @@ export function euros(valeur: number | null | undefined): string | null {
   return EUROS.format(Number(valeur));
 }
 
-export function dateCourte(d: Date | null | undefined): string | null {
-  return d ? DATE_COURTE.format(d) : null;
+/**
+ * Une date, quelle que soit sa forme d'arrivée.
+ *
+ * L'API renvoie des chaînes ISO, le code local manipule des `Date`. Convertir
+ * ici plutôt qu'à chaque appel évite l'oubli silencieux — une chaîne passée à
+ * `Intl.format` lève une exception et blanchit la page.
+ *
+ * Une date invalide renvoie `null` plutôt que « Invalid Date » : mieux vaut un
+ * champ vide qu'un message incompréhensible.
+ */
+export type DateEntrante = Date | string | null | undefined;
+
+function versDate(d: DateEntrante): Date | null {
+  if (d == null) return null;
+  const date = d instanceof Date ? d : new Date(d);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
-export function dateLongue(d: Date | null | undefined): string | null {
-  return d ? DATE_LONGUE.format(d) : null;
+export function dateCourte(d: DateEntrante): string | null {
+  const date = versDate(d);
+  return date ? DATE_COURTE.format(date) : null;
 }
 
-export function dateHeure(d: Date | null | undefined): string | null {
-  return d ? DATE_HEURE.format(d) : null;
+export function dateLongue(d: DateEntrante): string | null {
+  const date = versDate(d);
+  return date ? DATE_LONGUE.format(date) : null;
+}
+
+export function dateHeure(d: DateEntrante): string | null {
+  const date = versDate(d);
+  return date ? DATE_HEURE.format(date) : null;
 }
 
 /** Format court pour un champ input[type=date]. */
-export function pourInputDate(d: Date | null | undefined): string {
-  if (!d) return "";
-  return d.toISOString().slice(0, 10);
+export function pourInputDate(d: DateEntrante): string {
+  const date = versDate(d);
+  if (!date) return "";
+  return date.toISOString().slice(0, 10);
 }
 
 /** « il y a 3 j », « aujourd'hui », « dans 2 j ». */
-export function depuis(d: Date | null | undefined, maintenant = new Date()): string | null {
-  if (!d) return null;
-  const jours = Math.round((d.getTime() - maintenant.getTime()) / 86_400_000);
+export function depuis(
+  d: DateEntrante,
+  maintenant = new Date(),
+): string | null {
+  const date = versDate(d);
+  if (!date) return null;
+  const jours = Math.round(
+    (date.getTime() - maintenant.getTime()) / 86_400_000,
+  );
   if (jours === 0) return "aujourd'hui";
   if (jours === 1) return "demain";
   if (jours === -1) return "hier";

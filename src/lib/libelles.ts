@@ -6,6 +6,7 @@
  */
 
 import type {
+  ActionJournal,
   CanalDetaille,
   EtapeCommerciale,
   ModeAcquisition,
@@ -254,6 +255,30 @@ export const BADGE_LLD_COURT: Record<StatutLld, string> = {
   SIGNE_LIVRAISON_A_CONFIRMER: "Livraison à confirmer",
   LIVRAISON_CONFIRMEE_CONTRAT_ACTIF: "Contrat actif",
   CLOTURE_NON_POURSUIVI: "Clôturé",
+};
+
+/**
+ * Les décisions tracées au journal.
+ *
+ * Elles sont formulées au passé et sans jugement : le journal rapporte ce qui
+ * a eu lieu, il ne qualifie pas. « Retour communiqué par le partenaire » plutôt
+ * que « refus GRENKE » — le CRM n'interprète pas ce que dit le partenaire.
+ */
+export const LIBELLE_ACTION: Record<ActionJournal, string> = {
+  CREATION: "Création",
+  PRISE_EN_CHARGE: "Prise en charge",
+  REATTRIBUTION: "Réattribution",
+  CHANGEMENT_ETAPE: "Changement d'étape",
+  CONVERSION_LEAD: "Conversion en opportunité",
+  CREATION_LLD: "Création du dossier LLD",
+  TRANSMISSION_LLD: "Transmission du dossier",
+  RETOUR_PARTENAIRE: "Retour communiqué par le partenaire",
+  SIGNATURE: "Signature",
+  LIVRAISON: "Livraison",
+  CLOTURE: "Clôture",
+  FUSION_DOUBLON: "Fusion de doublon",
+  ACCES_DOCUMENT: "Accès à un document",
+  MODIFICATION: "Modification",
 };
 
 /** Liste ordonnée d'un enum sous forme d'options pour les formulaires. */

@@ -152,6 +152,23 @@ export type TypeActivite =
 
 export type SensActivite = "ENTRANT" | "SORTANT" | "INTERNE";
 
+/** Les décisions tracées au journal — réattributions, transmissions, clôtures. */
+export type ActionJournal =
+  | "CREATION"
+  | "PRISE_EN_CHARGE"
+  | "REATTRIBUTION"
+  | "CHANGEMENT_ETAPE"
+  | "CONVERSION_LEAD"
+  | "CREATION_LLD"
+  | "TRANSMISSION_LLD"
+  | "RETOUR_PARTENAIRE"
+  | "SIGNATURE"
+  | "LIVRAISON"
+  | "CLOTURE"
+  | "FUSION_DOUBLON"
+  | "ACCES_DOCUMENT"
+  | "MODIFICATION";
+
 // ---------------------------------------------------------------------------
 // Utilisateur courant
 // ---------------------------------------------------------------------------

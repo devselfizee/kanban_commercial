@@ -17,6 +17,10 @@ import Lld from "./pages/Lld";
 import MesActions from "./pages/MesActions";
 import Pilotage from "./pages/Pilotage";
 import Synchro from "./pages/Synchro";
+import FicheLead from "./pages/FicheLead";
+import FicheOpportunite from "./pages/FicheOpportunite";
+import FicheLld from "./pages/FicheLld";
+import { FournisseurSession } from "./lib/session";
 import { api, ErreurApi } from "./api/client";
 import {
   authentificationActive,
@@ -77,7 +81,7 @@ export default function App() {
   }
 
   return (
-    <>
+    <FournisseurSession value={etat.utilisateur}>
       <Navigation
         utilisateur={etat.utilisateur}
         authentifie={authentificationActive}
@@ -87,18 +91,18 @@ export default function App() {
           <Route path="/" element={<Accueil />} />
           <Route path="/leads" element={<Leads />} />
           <Route path="/leads/nouveau" element={<NouveauLead />} />
-          <Route path="/leads/:id" element={<Leads />} />
+          <Route path="/leads/:id" element={<FicheLead />} />
           <Route path="/ventes" element={<Ventes />} />
-          <Route path="/ventes/:id" element={<Ventes />} />
+          <Route path="/ventes/:id" element={<FicheOpportunite />} />
           <Route path="/lld" element={<Lld />} />
-          <Route path="/lld/:id" element={<Lld />} />
+          <Route path="/lld/:id" element={<FicheLld />} />
           <Route path="/mes-actions" element={<MesActions />} />
           <Route path="/pilotage" element={<Pilotage />} />
           <Route path="/synchro" element={<Synchro />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
-    </>
+    </FournisseurSession>
   );
 }
 
