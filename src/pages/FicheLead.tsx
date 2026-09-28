@@ -64,6 +64,12 @@ type LeadDetaille = {
   dateAttribution: string | null;
   motifCloture: MotifClotureLead | null;
   commentaireCloture: string | null;
+  /** Renseignés quand le lead vient d'une demande du CRM. */
+  numeroCrm: string | null;
+  sourceCrm: string | null;
+  secteurCrm: string | null;
+  demandeCrmLe: string | null;
+  idCrmOpportunite: number | null;
   organisation: { nom: string; siren: string | null } | null;
   contactPrincipal: {
     prenom: string | null;
@@ -150,6 +156,15 @@ export default function FicheLead() {
         titre={nom}
         sousTitre={`${LIBELLE_STATUT_LEAD[lead.statut]} · ${LIBELLE_PRIORITE[lead.priorite]}`}
       >
+        {/* L'origine CRM se lit d'emblée : c'est là que se trouvent le
+            formulaire rempli par le client et l'historique de ses échanges. */}
+        {lead.idCrmOpportunite && (
+          <p className="mt-2 rounded-md bg-[var(--neutre-fond)] px-3 py-2 text-xs text-[var(--neutre-texte)]">
+            Demande CRM {lead.numeroCrm ?? `#${lead.idCrmOpportunite}`}
+            {lead.demandeCrmLe && ` · reçue le ${dateLongue(lead.demandeCrmLe)}`}
+            {lead.sourceCrm && ` · ${lead.sourceCrm}`}
+          </p>
+        )}
         {lead.opportunite && (
           <p className="mt-2 rounded-md bg-[var(--succes-fond)] px-3 py-2 text-sm text-[var(--succes-texte)]">
             Converti en{" "}
@@ -174,6 +189,11 @@ export default function FicheLead() {
           </Champ>
           <Champ libelle="Segment client">
             {lead.segment ? LIBELLE_SEGMENT[lead.segment] : "—"}
+            {lead.secteurCrm && (
+              <span className="block text-[11px] text-[var(--texte-doux)]">
+                CRM : {lead.secteurCrm}
+              </span>
+            )}
           </Champ>
           <Champ libelle="Projet recherché">
             {LIBELLE_PROJET[lead.projetRecherche]}
