@@ -11,13 +11,14 @@
 import { useNavigate } from "react-router-dom";
 import { api, ErreurApi } from "@/api/client";
 import { useApi } from "@/hooks/useApi";
+import { useFiltres } from "@/composants/FiltresTableau";
 import Tableau from "@/composants/Tableau";
 import EnTetePipeline from "@/composants/EnTetePipeline";
 import { Chargement, Erreur } from "@/composants/Etats";
 import type { DonneesCarte } from "@/composants/Carte";
 import { COLONNES_LLD } from "@/lib/pipelines";
 import { dateCourte, depuis, euros, titreCarte } from "@/lib/format";
-import type { StatutLld } from "@/lib/types";
+import type { SegmentClient, StatutLld } from "@/lib/types";
 
 type DossierApi = {
   id: string;
@@ -29,6 +30,8 @@ type DossierApi = {
   locataire: string | null;
   nom: string;
   ville: string | null;
+  segment: SegmentClient;
+  estParticulier: boolean;
   titreOpportunite: string;
   referenceOpportunite: string;
   checklistFaits: number;
@@ -52,11 +55,12 @@ type DossierApi = {
 export default function Lld() {
   const navigate = useNavigate();
   const { donnees, chargement, erreur, recharger } = useApi<DossierApi[]>("/lld");
+  const { filtrees, barre } = useFiltres(donnees ?? []);
 
   if (chargement) return <Chargement quoi="les dossiers LLD" />;
   if (erreur) return <Erreur message={erreur} onReessayer={recharger} />;
 
-  const dossiers = donnees ?? [];
+  const dossiers = filtrees;
   const maintenant = new Date();
 
   const cartes: (DonneesCarte & { statut: StatutLld })[] = dossiers.map((d) => {
@@ -136,6 +140,8 @@ export default function Lld() {
             : undefined
         }
       />
+      {barre}
+
       <Tableau
         colonnes={colonnes}
         onOuvrir={(id) => navigate(`/lld/${id}`)}

@@ -11,6 +11,7 @@
 import { useNavigate } from "react-router-dom";
 import { api, ErreurApi } from "@/api/client";
 import { useApi } from "@/hooks/useApi";
+import { useFiltres } from "@/composants/FiltresTableau";
 import Tableau from "@/composants/Tableau";
 import EnTetePipeline from "@/composants/EnTetePipeline";
 import { Chargement, Erreur } from "@/composants/Etats";
@@ -40,6 +41,7 @@ type LeadApi = {
   modeAcquisition: ModeAcquisition;
   canalDetaille: CanalDetaille;
   segment: SegmentClient | null;
+  estParticulier: boolean;
   projetRecherche: ProjetRecherche;
   nom: string | null;
   ville: string | null;
@@ -62,11 +64,13 @@ export default function Leads() {
   const navigate = useNavigate();
   const { donnees, chargement, erreur, recharger } =
     useApi<LeadApi[]>("/leads");
+  // Appelé avant les retours anticipés : un hook ne peut pas être conditionnel.
+  const { filtrees, barre } = useFiltres(donnees ?? []);
 
   if (chargement) return <Chargement quoi="les leads" />;
   if (erreur) return <Erreur message={erreur} onReessayer={recharger} />;
 
-  const leads = donnees ?? [];
+  const leads = filtrees;
   const maintenant = new Date();
 
   const cartes: (DonneesCarte & { statut: StatutLead })[] = leads.map((l) => {
@@ -140,6 +144,8 @@ export default function Leads() {
         sansSuivi={cartes.filter((c) => c.sansSuivi).length}
         actionNouveau={{ href: "/leads/nouveau", libelle: "Nouveau lead" }}
       />
+      {barre}
+
       <Tableau
         colonnes={colonnes}
         onOuvrir={(id) => navigate(`/leads/${id}`)}

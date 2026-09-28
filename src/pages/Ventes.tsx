@@ -8,6 +8,7 @@
 import { useNavigate } from "react-router-dom";
 import { api, ErreurApi } from "@/api/client";
 import { useApi } from "@/hooks/useApi";
+import { useFiltres } from "@/composants/FiltresTableau";
 import Tableau from "@/composants/Tableau";
 import EnTetePipeline from "@/composants/EnTetePipeline";
 import { Chargement, Erreur } from "@/composants/Etats";
@@ -31,6 +32,7 @@ type OpportuniteApi = {
   priorite: Priorite;
   projetRecherche: ProjetRecherche;
   segment: SegmentClient;
+  estParticulier: boolean;
   nom: string;
   ville: string | null;
   solutionEnvisagee: string | null;
@@ -67,11 +69,12 @@ export default function Ventes() {
   const navigate = useNavigate();
   const { donnees, chargement, erreur, recharger } =
     useApi<ReponseVentes>("/opportunites");
+  const { filtrees, actif, barre } = useFiltres(donnees?.cartes ?? []);
 
   if (chargement) return <Chargement quoi="les opportunités" />;
   if (erreur) return <Erreur message={erreur} onReessayer={recharger} />;
 
-  const opportunites = donnees?.cartes ?? [];
+  const opportunites = filtrees;
   const valeurs = donnees?.valeurs;
   const maintenant = new Date();
 
@@ -147,6 +150,13 @@ export default function Ventes() {
       />
 
       {valeurs && <ResumeValeurs {...valeurs} />}
+      {valeurs && actif && (
+        <p className="-mt-2 mb-3 text-[11px] text-[var(--texte-doux)]">
+          Ces valeurs portent sur tout le pipeline, sans les filtres.
+        </p>
+      )}
+
+      {barre}
 
       <Tableau
         colonnes={colonnes}
