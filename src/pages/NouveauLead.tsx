@@ -21,9 +21,11 @@ import {
   LIBELLE_SEGMENT,
 } from "@/lib/libelles";
 import type { ModeAcquisition, Role } from "@/lib/types";
+import RechercheClient, {
+  type ClientTrouve,
+} from "@/composants/RechercheClient";
 
 type Membre = { id: string; prenom: string; nom: string; role: Role };
-type Organisation = { id: string; nom: string; ville: string | null };
 
 const classeSaisie =
   "w-full rounded-lg border border-[var(--trait-fort)] bg-white px-3 py-2 text-sm text-[var(--texte)] transition focus:border-[var(--selfizee-400)] focus:outline-none";
@@ -37,9 +39,10 @@ export default function NouveauLead() {
   const { donnees: equipe } = useApi<Membre[]>(
     "/utilisateurs?role=COMMERCIAL,MANAGER",
   );
-  const { donnees: organisations } = useApi<Organisation[]>(
-    "/tableaux-bord/organisations",
-  );
+  // Le client est cherché plutôt que choisi dans une liste : le CRM en compte
+  // près de 170 000, et celui qu'on retient n'entre dans le kanban qu'à
+  // l'enregistrement du lead.
+  const [client, setClient] = useState<ClientTrouve | null>(null);
 
   async function envoyer(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -54,13 +57,25 @@ export default function NouveauLead() {
     const texte = (cle: string) => String(d.get(cle) ?? "").trim() || undefined;
 
     try {
+      // Un client choisi dans le CRM n'a pas encore d'organisation ici : on la
+      // crée maintenant, pas avant. C'est ce qui évite d'importer 170 000
+      // fiches pour en utiliser quelques centaines.
+      let organisationId = client?.organisationId ?? undefined;
+      if (client && !organisationId) {
+        const issue = await api.post<{ organisationId: string }>(
+          "/leads/clients/reprendre",
+          client,
+        );
+        organisationId = issue.organisationId;
+      }
+
       await api.post("/leads", {
         modeAcquisition: d.get("mode"),
         canalDetaille: d.get("canal"),
         nomBrut: texte("nom"),
         emailBrut: texte("email"),
         telephoneBrut: texte("telephone"),
-        organisationId: texte("organisation"),
+        organisationId,
         segment: texte("segment"),
         projetRecherche: texte("projet"),
         besoinResume: texte("besoin"),
@@ -149,16 +164,8 @@ export default function NouveauLead() {
           aide="Un nom ou une organisation, et au moins un moyen de joindre la personne."
         >
           <div className="grid gap-3 sm:grid-cols-2">
-            <Champ libelle="Organisation existante">
-              <select name="organisation" defaultValue="" className={classeSaisie}>
-                <option value="">— aucune, je saisis un nom —</option>
-                {(organisations ?? []).map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.nom}
-                    {o.ville ? ` — ${o.ville}` : ""}
-                  </option>
-                ))}
-              </select>
+            <Champ libelle="Client existant">
+              <RechercheClient choisi={client} onChoisir={setClient} />
             </Champ>
 
             <Champ libelle="Nom ou raison sociale">
