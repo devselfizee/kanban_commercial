@@ -24,7 +24,7 @@ type DossierApi = {
   id: string;
   reference: string;
   statut: StatutLld;
-  dureeDemandeeMois: number;
+  dureeDemandeeMois: number | null;
   montantFinance: number | null;
   loyerMensuel: number | null;
   locataire: string | null;
@@ -66,7 +66,10 @@ export default function Lld() {
 
   const cartes: (DonneesCarte & { statut: StatutLld })[] = dossiers.map((d) => {
     const badges: DonneesCarte["badges"] = [
-      { texte: `${d.dureeDemandeeMois} mois`, ton: "lld" },
+      {
+        texte: d.dureeDemandeeMois != null ? `${d.dureeDemandeeMois} mois` : "Durée à renseigner",
+        ton: "lld",
+      },
       {
         texte: `Checklist ${d.checklistFaits}/${d.checklistTotal}`,
         titre: "Checklist interne de complétude Selfizee",

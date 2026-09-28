@@ -39,7 +39,10 @@ type DossierDetaille = {
   id: string;
   reference: string;
   statut: StatutLld;
-  dureeDemandeeMois: number;
+  /** Absente pour un dossier repris d'un devis CRM : à renseigner. */
+  dureeDemandeeMois: number | null;
+  referenceDevisCrm: string | null;
+  statutCrm: string | null;
   montantFinance: number | null;
   loyerMensuel: number | null;
   locataire: string | null;
@@ -167,11 +170,24 @@ export default function FicheLld() {
           </Link>{" "}
           — {d.opportunite.titre} · {LIBELLE_ETAPE[d.opportunite.etape]}
         </p>
+        {d.referenceDevisCrm && (
+          <p className="mt-1 text-xs text-[var(--texte-doux)]">
+            Repris du devis CRM {d.referenceDevisCrm}, facturé à GRENKE
+            {d.statutCrm && ` · statut CRM : ${d.statutCrm}`}. Tant qu'il n'est pas
+            déplacé à la main, le dossier suit ce devis.
+          </p>
+        )}
       </EnTeteFiche>
 
       <Section titre="Demande de financement">
         <ListeChamps>
-          <Champ libelle="Durée demandée">{d.dureeDemandeeMois} mois</Champ>
+          <Champ libelle="Durée demandée">
+            {d.dureeDemandeeMois != null ? (
+              `${d.dureeDemandeeMois} mois`
+            ) : (
+              <span className="text-[var(--alerte-texte)]">À renseigner</span>
+            )}
+          </Champ>
           <Champ libelle="Locataire">{d.locataire ?? "—"}</Champ>
           <Champ libelle="Montant financé">
             {euros(d.montantFinance) ?? "—"}

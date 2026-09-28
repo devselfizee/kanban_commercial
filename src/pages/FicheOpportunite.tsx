@@ -109,7 +109,7 @@ type OpportuniteDetaillee = {
     id: string;
     reference: string;
     statut: StatutLld;
-    dureeDemandeeMois: number;
+    dureeDemandeeMois: number | null;
     prochaineActionLe: string | null;
     prochaineActionLabel: string | null;
     collaboratrice: { prenom: string; nom: string } | null;
@@ -184,7 +184,9 @@ export default function FicheOpportunite() {
               <dl className="mt-2 space-y-1 text-xs">
                 <Champ libelle="Référence">{lld.reference}</Champ>
                 <Champ libelle="Durée demandée">
-                  {lld.dureeDemandeeMois} mois
+                  {lld.dureeDemandeeMois != null
+                    ? `${lld.dureeDemandeeMois} mois`
+                    : "à renseigner"}
                 </Champ>
                 <Champ libelle="Collaboratrice">
                   {lld.collaboratrice
