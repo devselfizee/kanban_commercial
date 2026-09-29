@@ -13,6 +13,18 @@ import { useApi } from "@/hooks/useApi";
 import { Chargement, Erreur } from "@/composants/Etats";
 import { euros } from "@/lib/format";
 import {
+  IconeBoite,
+  IconeCalendrier,
+  IconeCoche,
+  IconeEntonnoir,
+  IconeEuro,
+  IconeGraphique,
+  IconeGroupe,
+  IconeHorloge,
+  IconePersonne,
+  IconePourcent,
+} from "@/composants/Icones";
+import {
   LIBELLE_CANAL,
   LIBELLE_ETAPE,
   LIBELLE_MODE_ACQUISITION,
@@ -44,7 +56,8 @@ type Reponse = {
   couverture: number;
   cycleMoyen: number | null;
   parEtape: { etape: EtapeCommerciale; nb: number; ventes: number; loyers: number }[];
-  stockLld: { statut: StatutLld; nb: number; valeur: number }[];
+  /** `valeur` : loyers mensuels ; `montantFinance` : montant financé. */
+  stockLld: { statut: StatutLld; nb: number; valeur: number; montantFinance: number }[];
   parCanal: {
     canal: CanalDetaille;
     mode: ModeAcquisition;
@@ -75,14 +88,19 @@ export default function Pilotage() {
 
   return (
     <div className="space-y-4">
-      <header>
-        <h1 className="text-lg font-bold tracking-tight text-[var(--texte-fort)]">
+      <header className="flex items-start gap-3">
+        <span className="mt-0.5 text-[var(--selfizee-600)]">
+          <IconeGraphique className="h-7 w-7" />
+        </span>
+        <div>
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--texte-fort)]">
           Pilotage
         </h1>
         <p className="text-xs text-[var(--texte-doux)]">
           Ventes directes et LLD suivies séparément. Les indicateurs LLD mesurent
           la complétude du processus Selfizee, jamais une politique de crédit.
         </p>
+        </div>
       </header>
 
       {/* Réactivité */}
@@ -93,6 +111,8 @@ export default function Pilotage() {
             d.delaiMoyenHeures != null ? `${d.delaiMoyenHeures.toFixed(1)} h` : "—"
           }
           aide="Entre création du lead entrant et première activité réalisée."
+          icone={<IconePersonne />}
+          teinte="bleu"
         />
         <Tuile
           libelle="Délai jusqu'à qualification"
@@ -100,89 +120,40 @@ export default function Pilotage() {
             d.delaiQualifMoyen != null ? `${d.delaiQualifMoyen.toFixed(1)} j` : "—"
           }
           aide="Entre création du lead et conversion en opportunité."
+          icone={<IconeHorloge />}
+          teinte="vert"
         />
         <Tuile
           libelle="Couverture d'activité"
           valeur={`${d.couverture} %`}
           aide="Cartes ouvertes disposant d'une prochaine action datée."
           ton={d.couverture < 80 ? "alerte" : "normal"}
+          icone={<IconePourcent />}
+          teinte="rose"
         />
         <Tuile
           libelle="Délai de cycle de vente"
           valeur={d.cycleMoyen != null ? `${d.cycleMoyen.toFixed(0)} j` : "—"}
           aide="Entre création de l'opportunité et issue gagnée / perdue."
+          icone={<IconeCalendrier />}
+          teinte="orange"
         />
       </section>
 
       <AffairesSignees donnees={d.affairesSignees} />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Bloc titre="Pipeline commercial par étape">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[var(--trait)] text-left text-[11px] uppercase text-[var(--texte-tres-doux)]">
-                <th className="pb-1 font-medium">Étape</th>
-                <th className="pb-1 text-right font-medium">Nb</th>
-                <th className="pb-1 text-right font-medium">Ventes</th>
-                <th className="pb-1 text-right font-medium">Loyers / mois</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--trait)]">
-              {d.parEtape.map((e) => (
-                <tr key={e.etape}>
-                  <td className="py-1.5">{LIBELLE_ETAPE[e.etape]}</td>
-                  <td className="py-1.5 text-right tabular-nums">{e.nb}</td>
-                  <td className="py-1.5 text-right tabular-nums">
-                    {e.ventes > 0 ? euros(e.ventes) : "—"}
-                  </td>
-                  <td className="py-1.5 text-right tabular-nums text-indigo-700">
-                    {e.loyers > 0 ? euros(e.loyers) : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="mt-2 text-[10px] italic text-[var(--texte-tres-doux)]">
-            Les deux colonnes de valeur ne s&apos;additionnent pas.
-          </p>
+        <Bloc titre="Pipeline commercial par étape" icone={<IconeEntonnoir className="h-4 w-4" />}>
+          <BarresParEtape etapes={d.parEtape} />
         </Bloc>
 
-        <Bloc titre="Stock LLD par statut">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[var(--trait)] text-left text-[11px] uppercase text-[var(--texte-tres-doux)]">
-                <th className="pb-1 font-medium">Statut</th>
-                <th className="pb-1 text-right font-medium">Nb</th>
-                <th className="pb-1 text-right font-medium">Loyers / mois</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--trait)]">
-              {d.stockLld.map((s) => (
-                <tr key={s.statut}>
-                  <td className="py-1.5">{LIBELLE_STATUT_LLD[s.statut]}</td>
-                  <td className="py-1.5 text-right tabular-nums">{s.nb}</td>
-                  <td className="py-1.5 text-right tabular-nums">
-                    {s.valeur > 0 ? euros(s.valeur) : "—"}
-                  </td>
-                </tr>
-              ))}
-              {d.stockLld.length === 0 && (
-                <tr>
-                  <td colSpan={3} className="py-3 text-[var(--texte-doux)]">
-                    Aucun dossier LLD.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          <p className="mt-2 text-[10px] italic text-[var(--texte-tres-doux)]">
-            Ce tableau mesure l&apos;avancement des dossiers. Il ne constitue pas
-            un score d&apos;acceptation.
-          </p>
+        <Bloc titre="Stock LLD par statut" icone={<IconeBoite className="h-4 w-4" />}>
+          <StockLld stock={d.stockLld} />
         </Bloc>
 
-        <Bloc titre="Leads par canal d'acquisition">
-          <table className="w-full text-sm">
+        <Bloc titre="Leads par canal d'acquisition" icone={<IconePersonne className="h-4 w-4" />}>
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[22rem] text-sm">
             <thead>
               <tr className="border-b border-[var(--trait)] text-left text-[11px] uppercase text-[var(--texte-tres-doux)]">
                 <th className="pb-1 font-medium">Canal</th>
@@ -211,9 +182,10 @@ export default function Pilotage() {
               )}
             </tbody>
           </table>
+          </div>
         </Bloc>
 
-        <Bloc titre="Qualité des données">
+        <Bloc titre="Qualité des données" icone={<IconeCoche className="h-4 w-4" />}>
           <ul className="space-y-1.5 text-sm">
             <LigneQualite
               libelle="Cartes sans prochaine action"
@@ -257,6 +229,230 @@ export default function Pilotage() {
         <Tuile libelle="Dossiers LLD en cours" valeur={String(d.dossiersEnCours)} />
       </section>
     </div>
+  );
+}
+
+/** Séries du pipeline — validées au script : séparation daltonisme ≥ 20. */
+const SERIE = { nb: "#dd0049", ventes: "#2a78d6", loyers: "#eda100" } as const;
+
+/**
+ * Pipeline commercial par étape (§11).
+ *
+ * La maquette posait nombre, ventes et loyers sur un même axe : des centaines
+ * de cartes à côté de dizaines de milliers d'euros, et des ventes à côté de
+ * loyers mensuels, que le document interdit de comparer. Chaque mesure a donc
+ * sa colonne et sa propre échelle — trois petits graphiques qui partagent les
+ * étapes. La valeur est écrite à côté de chaque barre : l'ambre, trop pâle sur
+ * fond blanc pour se lire seul, n'est jamais la seule façon de la lire.
+ */
+function BarresParEtape({ etapes }: { etapes: Reponse["parEtape"] }) {
+  if (etapes.length === 0) {
+    return <p className="text-sm text-[var(--texte-doux)]">Aucune opportunité.</p>;
+  }
+
+  const colonnes = [
+    { cle: "nb", libelle: "Nombre", format: (v: number) => String(v) },
+    { cle: "ventes", libelle: "Ventes", format: (v: number) => euros(v) ?? "—" },
+    { cle: "loyers", libelle: "Loyers / mois", format: (v: number) => euros(v) ?? "—" },
+  ] as const;
+  const maxi = {
+    nb: Math.max(1, ...etapes.map((e) => e.nb)),
+    ventes: Math.max(1, ...etapes.map((e) => e.ventes)),
+    loyers: Math.max(1, ...etapes.map((e) => e.loyers)),
+  };
+
+  return (
+    <div className="overflow-x-auto">
+      <div className="min-w-[34rem]">
+        {/* Légende : chaque colonne est nommée, la couleur ne porte rien seule. */}
+        <div className="mb-2 grid grid-cols-[9rem_1fr_1fr_1fr] gap-3 text-[10px] font-semibold uppercase tracking-wide text-[var(--texte-doux)]">
+          <span>Étape</span>
+          {colonnes.map((c) => (
+            <span key={c.cle} className="flex items-center gap-1.5">
+              <span
+                className="h-2.5 w-2.5 rounded-sm"
+                style={{ background: SERIE[c.cle] }}
+                aria-hidden
+              />
+              {c.libelle}
+            </span>
+          ))}
+        </div>
+
+        <ul className="space-y-1">
+          {etapes.map((e) => (
+            <li
+              key={e.etape}
+              className="grid grid-cols-[9rem_1fr_1fr_1fr] items-center gap-3 rounded-md px-1 py-1 hover:bg-[var(--fond-colonne)]"
+              title={`${LIBELLE_ETAPE[e.etape]} — ${e.nb} opportunité(s), ventes ${
+                euros(e.ventes) ?? "—"
+              }, loyers ${euros(e.loyers) ?? "—"} / mois`}
+            >
+              <span className="truncate text-xs text-[var(--texte-fort)]">
+                {LIBELLE_ETAPE[e.etape]}
+              </span>
+              {colonnes.map((c) => {
+                const v = e[c.cle];
+                return (
+                  <span key={c.cle} className="flex items-center gap-2">
+                    <span className="h-2.5 flex-1 overflow-hidden rounded-r bg-transparent">
+                      {v > 0 && (
+                        <span
+                          className="block h-full rounded-r"
+                          style={{
+                            width: `${Math.max(3, (v / maxi[c.cle]) * 100)}%`,
+                            background: SERIE[c.cle],
+                          }}
+                        />
+                      )}
+                    </span>
+                    <span className="w-16 shrink-0 text-right text-[11px] tabular-nums text-[var(--texte)]">
+                      {v > 0 ? c.format(v) : "—"}
+                    </span>
+                  </span>
+                );
+              })}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <p className="mt-2 text-[10px] italic text-[var(--texte-tres-doux)]">
+        Chaque colonne a sa propre échelle. Ventes et loyers ne s'additionnent pas.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Stock LLD, regroupé comme sur la maquette en quatre familles, avec le détail
+ * des colonnes du tableau LLD dessous (§11 : « dans chaque colonne LLD »).
+ *
+ * Les couleurs suivent l'état du dossier, toujours accompagnées du libellé.
+ * « Clôturé » reste neutre : un dossier non poursuivi n'est pas une alerte.
+ */
+const FAMILLES_LLD: {
+  libelle: string;
+  couleur: string;
+  statuts: StatutLld[];
+}[] = [
+  {
+    libelle: "En cours chez Selfizee",
+    couleur: "#2a78d6",
+    statuts: [
+      "LLD_A_ETUDIER",
+      "DOSSIER_A_PREPARER",
+      "EN_ATTENTE_ELEMENTS_CLIENT",
+      "PRET_A_TRANSMETTRE",
+      "CONTRAT_A_SIGNER",
+      "SIGNE_LIVRAISON_A_CONFIRMER",
+    ],
+  },
+  {
+    libelle: "En attente de GRENKE",
+    couleur: "#eda100",
+    statuts: [
+      "TRANSMIS_A_GRENKE",
+      "RETOUR_ANALYSE_EN_ATTENTE",
+      "REPONSE_COMMUNIQUEE_PAR_GRENKE",
+    ],
+  },
+  {
+    libelle: "Contrat actif",
+    couleur: "#008300",
+    statuts: ["LIVRAISON_CONFIRMEE_CONTRAT_ACTIF"],
+  },
+  {
+    libelle: "Clôturé — non poursuivi",
+    couleur: "#9ca3af",
+    statuts: ["CLOTURE_NON_POURSUIVI"],
+  },
+];
+
+function StockLld({ stock }: { stock: Reponse["stockLld"] }) {
+  const parStatut = new Map(stock.map((s) => [s.statut, s]));
+  const total = stock.reduce(
+    (t, s) => ({
+      nb: t.nb + s.nb,
+      montant: t.montant + s.montantFinance,
+      loyers: t.loyers + s.valeur,
+    }),
+    { nb: 0, montant: 0, loyers: 0 },
+  );
+
+  if (stock.length === 0) {
+    return <p className="text-sm text-[var(--texte-doux)]">Aucun dossier LLD.</p>;
+  }
+
+  const cellule = "py-1.5 text-right tabular-nums";
+
+  return (
+    <>
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[22rem] text-sm">
+        <thead>
+          <tr className="bg-[var(--fond-colonne)] text-[10px] font-semibold uppercase tracking-wide text-[var(--texte-doux)]">
+            <th className="rounded-l-md px-2 py-1.5 text-left">Statut</th>
+            <th className="px-2 py-1.5 text-right">Nb</th>
+            <th className="px-2 py-1.5 text-right">Montant financé</th>
+            <th className="rounded-r-md px-2 py-1.5 text-right">Loyers / mois</th>
+          </tr>
+        </thead>
+        <tbody>
+          {FAMILLES_LLD.map((f) => {
+            const lignes = f.statuts
+              .map((s) => parStatut.get(s))
+              .filter((s): s is NonNullable<typeof s> => !!s);
+            if (lignes.length === 0) return null;
+            const nb = lignes.reduce((t, s) => t + s.nb, 0);
+            const montant = lignes.reduce((t, s) => t + s.montantFinance, 0);
+            const loyers = lignes.reduce((t, s) => t + s.valeur, 0);
+            return [
+              <tr key={f.libelle} className="border-t border-[var(--trait)]">
+                <td className="px-2 py-1.5 font-medium text-[var(--texte-fort)]">
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ background: f.couleur }}
+                      aria-hidden
+                    />
+                    {f.libelle}
+                  </span>
+                </td>
+                <td className={`px-2 ${cellule} font-medium`}>{nb}</td>
+                <td className={`px-2 ${cellule}`}>{montant > 0 ? euros(montant) : "—"}</td>
+                <td className={`px-2 ${cellule}`}>{loyers > 0 ? euros(loyers) : "—"}</td>
+              </tr>,
+              // Le détail par colonne du tableau LLD, en retrait.
+              ...(lignes.length > 1
+                ? lignes.map((s) => (
+                    <tr key={s.statut} className="text-xs text-[var(--texte-doux)]">
+                      <td className="py-1 pl-7 pr-2">{LIBELLE_STATUT_LLD[s.statut]}</td>
+                      <td className="px-2 py-1 text-right tabular-nums">{s.nb}</td>
+                      <td className="px-2 py-1 text-right tabular-nums">
+                        {s.montantFinance > 0 ? euros(s.montantFinance) : "—"}
+                      </td>
+                      <td className="px-2 py-1 text-right tabular-nums">
+                        {s.valeur > 0 ? euros(s.valeur) : "—"}
+                      </td>
+                    </tr>
+                  ))
+                : []),
+            ];
+          })}
+          <tr className="border-t-2 border-[var(--trait-fort)] font-semibold text-[var(--texte-fort)]">
+            <td className="px-2 py-1.5">Total</td>
+            <td className={`px-2 ${cellule}`}>{total.nb}</td>
+            <td className={`px-2 ${cellule}`}>{total.montant > 0 ? euros(total.montant) : "—"}</td>
+            <td className={`px-2 ${cellule}`}>{total.loyers > 0 ? euros(total.loyers) : "—"}</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+      <p className="mt-2 text-[10px] italic text-[var(--texte-tres-doux)]">
+        Mesure l'avancement des dossiers, jamais un score d'acceptation. Montant
+        financé et loyers ne s'additionnent pas.
+      </p>
+    </>
   );
 }
 
@@ -305,33 +501,55 @@ function AffairesSignees({ donnees }: { donnees: Reponse["affairesSignees"] }) {
         <Tuile
           libelle="Location financière GRENKE — 12 mois"
           valeur={euros(cumul.lldHt) ?? "—"}
-          aide={`${cumul.lldNb} devis signés facturés à GRENKE.`}
+          aide={`${cumul.lldNb} devis signés, facturés à GRENKE.`}
+          icone={<IconeEuro />}
+          teinte="violet"
         />
         <Tuile
           libelle="Autres affaires signées — 12 mois"
           valeur={euros(cumul.autresHt) ?? "—"}
           aide={`${cumul.autresNb} devis signés : ventes et locations directes.`}
+          icone={<IconeGroupe />}
+          teinte="turquoise"
         />
       </div>
 
-      <Bloc titre="Affaires signées par mois">
+      <Bloc titre="Affaires signées par mois" icone={<IconeCalendrier className="h-4 w-4" />}>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[28rem] text-sm tabular-nums">
+          {/* Chaque série a son groupe de deux colonnes — nombre et montant —
+              séparé de l'autre par un filet : les deux ne se lisent jamais
+              comme une seule colonne à additionner. */}
+          <table className="w-full min-w-[30rem] text-sm tabular-nums">
+            <colgroup>
+              <col />
+              <col className="w-20" />
+              <col className="w-36" />
+              <col className="w-20" />
+              <col className="w-36" />
+            </colgroup>
             <thead>
-              <tr className="text-[10px] uppercase tracking-wide text-[var(--texte-doux)]">
-                <th className="py-1 text-left font-medium">Mois</th>
-                <th className="py-1 text-right font-medium" colSpan={2}>
+              <tr className="text-[10px] font-semibold uppercase tracking-wide text-[var(--texte-doux)]">
+                <th rowSpan={2} className="rounded-l-md bg-[var(--fond-colonne)] px-2 py-1.5 text-left align-bottom">
+                  Mois
+                </th>
+                <th colSpan={2} className="bg-[var(--fond-colonne)] px-2 pt-1.5 text-center">
                   Location financière GRENKE
                 </th>
-                <th className="py-1 text-right font-medium" colSpan={2}>
+                <th colSpan={2} className="rounded-r-md border-l border-[var(--trait)] bg-[var(--fond-colonne)] px-2 pt-1.5 text-center">
                   Autres affaires
                 </th>
+              </tr>
+              <tr className="text-[10px] font-medium text-[var(--texte-tres-doux)]">
+                <th className="bg-[var(--fond-colonne)] px-2 pb-1.5 text-right font-medium">Devis</th>
+                <th className="bg-[var(--fond-colonne)] px-2 pb-1.5 text-right font-medium">Montant HT</th>
+                <th className="border-l border-[var(--trait)] bg-[var(--fond-colonne)] px-2 pb-1.5 text-right font-medium">Devis</th>
+                <th className="rounded-br-md bg-[var(--fond-colonne)] px-2 pb-1.5 text-right font-medium">Montant HT</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--trait)]">
               {[...mois].reverse().map((m) => (
-                <tr key={m.mois}>
-                  <td className="py-1.5 text-[var(--texte-fort)]">
+                <tr key={m.mois} className="hover:bg-[var(--fond-colonne)]">
+                  <td className="whitespace-nowrap px-2 py-1.5 text-[var(--texte-fort)]">
                     {libelleMois(m.mois)}
                     {m.mois === moisCourant && (
                       <span className="ml-1.5 text-[10px] text-[var(--texte-tres-doux)]">
@@ -339,16 +557,16 @@ function AffairesSignees({ donnees }: { donnees: Reponse["affairesSignees"] }) {
                       </span>
                     )}
                   </td>
-                  <td className="py-1.5 text-right text-[var(--texte-doux)]">
+                  <td className="px-2 py-1.5 text-right text-[var(--texte-doux)]">
                     {m.lldNb || "—"}
                   </td>
-                  <td className="py-1.5 pl-3 text-right font-medium text-[var(--texte-fort)]">
+                  <td className="px-2 py-1.5 text-right font-medium text-[var(--texte-fort)]">
                     {m.lldNb ? euros(m.lldHt) : "—"}
                   </td>
-                  <td className="py-1.5 pl-6 text-right text-[var(--texte-doux)]">
+                  <td className="border-l border-[var(--trait)] px-2 py-1.5 text-right text-[var(--texte-doux)]">
                     {m.autresNb || "—"}
                   </td>
-                  <td className="py-1.5 pl-3 text-right font-medium text-[var(--texte-fort)]">
+                  <td className="px-2 py-1.5 text-right font-medium text-[var(--texte-fort)]">
                     {m.autresNb ? euros(m.autresHt) : "—"}
                   </td>
                 </tr>
@@ -366,39 +584,83 @@ function AffairesSignees({ donnees }: { donnees: Reponse["affairesSignees"] }) {
   );
 }
 
+/**
+ * Couleurs des pastilles d'icône. Décoratives — le libellé porte le sens —
+ * elles distinguent les tuiles d'un coup d'œil, comme sur la maquette.
+ */
+const TEINTE_ICONE = {
+  bleu: "#2a78d6",
+  vert: "#1baf7a",
+  rose: "#f93e8e",
+  orange: "#eda100",
+  violet: "#4a3aa7",
+  turquoise: "#0e9aa7",
+} as const;
+
 function Tuile({
   libelle,
   valeur,
   aide,
   ton = "normal",
+  icone,
+  teinte,
 }: {
   libelle: string;
   valeur: string;
   aide?: string;
   ton?: "normal" | "alerte";
+  icone?: React.ReactNode;
+  teinte?: keyof typeof TEINTE_ICONE;
 }) {
   return (
     <div
       className={[
-        "rounded-xl border bg-white p-3",
+        "flex min-w-0 gap-3 rounded-xl border bg-white p-4 shadow-sm",
         ton === "alerte" ? "border-[var(--alerte-bord)]" : "border-[var(--trait)]",
       ].join(" ")}
     >
-      <p className="text-[10px] uppercase tracking-wide text-[var(--texte-doux)]">
-        {libelle}
-      </p>
-      <p className="mt-0.5 text-xl font-bold tabular-nums">{valeur}</p>
-      {aide && (
-        <p className="mt-0.5 text-[10px] text-[var(--texte-tres-doux)]">{aide}</p>
+      {icone && (
+        <span
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white"
+          style={{ background: TEINTE_ICONE[teinte ?? "bleu"] }}
+        >
+          {icone}
+        </span>
       )}
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--texte-doux)]">
+          {libelle}
+        </p>
+        <p className="mt-1 text-2xl font-bold tabular-nums text-[var(--texte-fort)]">
+          {valeur}
+        </p>
+        {aide && (
+          <p className="mt-1 text-[11px] text-[var(--texte-tres-doux)]">{aide}</p>
+        )}
+      </div>
     </div>
   );
 }
 
-function Bloc({ titre, children }: { titre: string; children: React.ReactNode }) {
+function Bloc({
+  titre,
+  icone,
+  children,
+}: {
+  titre: string;
+  icone?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
-    <section className="rounded-xl border border-[var(--trait)] bg-white p-4">
-      <h2 className="mb-2 text-sm font-semibold">{titre}</h2>
+    <section className="min-w-0 rounded-xl border border-[var(--trait)] bg-white p-4 shadow-sm">
+      <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--texte-fort)]">
+        {icone && (
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--selfizee-50)] text-[var(--selfizee-600)]">
+            {icone}
+          </span>
+        )}
+        {titre}
+      </h2>
       {children}
     </section>
   );
