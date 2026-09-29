@@ -93,3 +93,23 @@ export const IconeCoche = (p: Props) => (
     <path d="m8 12 3 3 5-6" />
   </Trait>
 );
+
+export const IconeTelephone = (p: Props) => (
+  <Trait {...p}>
+    <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />
+  </Trait>
+);
+
+export const IconeListe = (p: Props) => (
+  <Trait {...p}>
+    <path d="M9 6h12M9 12h12M9 18h12" />
+    <path d="M4 6h.01M4 12h.01M4 18h.01" />
+  </Trait>
+);
+
+export const IconeDocument = (p: Props) => (
+  <Trait {...p}>
+    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" />
+    <path d="M14 3v5h5M9 13h6M9 17h6" />
+  </Trait>
+);

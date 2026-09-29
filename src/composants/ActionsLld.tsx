@@ -68,7 +68,7 @@ export default function ActionsLld({
 
   if (!peutAgir) {
     return (
-      <div className="rounded-xl border border-[var(--trait)] bg-white p-4">
+      <div className="rounded-xl border border-[var(--trait)] bg-white p-4 shadow-sm">
         <h2 className="mb-2 text-sm font-semibold text-[var(--texte-fort)]">
           Actions
         </h2>
@@ -81,7 +81,7 @@ export default function ActionsLld({
   }
 
   return (
-    <div className="rounded-xl border border-[var(--trait)] bg-white p-4">
+    <div className="rounded-xl border border-[var(--trait)] bg-white p-4 shadow-sm">
       <h2 className="mb-3 text-sm font-semibold text-[var(--texte-fort)]">
         Actions
       </h2>

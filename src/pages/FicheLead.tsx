@@ -26,9 +26,19 @@ import {
   EnTeteFiche,
   JournalDecisions,
   ListeChamps,
+  Reperes,
   Section,
+  repereAge,
+  repereProchaineAction,
   type EntreeJournal,
 } from "@/composants/Fiche";
+import {
+  IconeEntonnoir,
+  IconeHorloge,
+  IconeListe,
+  IconePersonne,
+  IconeTelephone,
+} from "@/composants/Icones";
 import JournalActivites, {
   type ActiviteAffichee,
   type TacheAffichee,
@@ -63,6 +73,9 @@ type LeadDetaille = {
   proprietaireId: string | null;
   dateAttribution: string | null;
   motifCloture: MotifClotureLead | null;
+  prochaineActionLe: string | null;
+  prochaineActionLabel: string | null;
+  entreEnEtapeLe: string | null;
   commentaireCloture: string | null;
   /** Renseignés quand le lead vient d'une demande du CRM. */
   numeroCrm: string | null;
@@ -70,7 +83,12 @@ type LeadDetaille = {
   secteurCrm: string | null;
   demandeCrmLe: string | null;
   idCrmOpportunite: number | null;
-  organisation: { nom: string; siren: string | null } | null;
+  organisation: {
+    nom: string;
+    siren: string | null;
+    email: string | null;
+    telephone: string | null;
+  } | null;
   contactPrincipal: {
     prenom: string | null;
     nom: string;
@@ -106,13 +124,19 @@ export default function FicheLead() {
   if (!lead) return <Erreur message="Lead introuvable." />;
 
   const nom = lead.organisation?.nom ?? lead.nomBrut ?? "Sans nom";
+  // Clôturé, converti, ou en nurturing avec une date de réactivation : plus
+  // de prochaine action à exiger.
+  const leadClos =
+    lead.statut === "NON_QUALIFIE_CLOTURE" ||
+    lead.statut === "NURTURING_A_REACTIVER" ||
+    lead.statut === "QUALIFIE_A_CONVERTIR";
   const contact = lead.contactPrincipal;
 
   return (
     <DispositionFiche
       actions={
         <>
-          <Section titre="Responsable">
+          <Section titre="Responsable" icone={<IconePersonne className="h-4 w-4" />}>
             <p className="text-sm text-[var(--texte-fort)]">
               {lead.proprietaire
                 ? `${lead.proprietaire.prenom} ${lead.proprietaire.nom}`
@@ -155,6 +179,8 @@ export default function FicheLead() {
         reference={lead.reference}
         titre={nom}
         sousTitre={`${LIBELLE_STATUT_LEAD[lead.statut]} · ${LIBELLE_PRIORITE[lead.priorite]}`}
+        icone={<IconePersonne />}
+        teinte="bleu"
       >
         {/* L'origine CRM se lit d'emblée : c'est là que se trouvent le
             formulaire rempli par le client et l'historique de ses échanges. */}
@@ -179,7 +205,28 @@ export default function FicheLead() {
         )}
       </EnTeteFiche>
 
-      <Section titre="Qualification">
+      <Reperes
+        reperes={[
+          repereProchaineAction(
+            lead.prochaineActionLe,
+            lead.prochaineActionLabel,
+            // Clôturé, ou en nurturing avec une date de réactivation : rien à
+            // planifier de plus.
+            leadClos,
+          ),
+          {
+            libelle: "Responsable",
+            valeur: lead.proprietaire
+              ? `${lead.proprietaire.prenom} ${lead.proprietaire.nom}`
+              : "Non attribué",
+            ton: lead.proprietaire ? "normal" : "alerte",
+          },
+          repereAge(lead.entreEnEtapeLe, leadClos),
+          { libelle: "Priorité", valeur: LIBELLE_PRIORITE[lead.priorite] },
+        ]}
+      />
+
+      <Section titre="Qualification" icone={<IconeEntonnoir className="h-4 w-4" />}>
         <ListeChamps>
           <Champ libelle="Mode d'acquisition">
             {LIBELLE_MODE_ACQUISITION[lead.modeAcquisition]}
@@ -208,7 +255,7 @@ export default function FicheLead() {
         </ListeChamps>
       </Section>
 
-      <Section titre="Coordonnées">
+      <Section titre="Coordonnées" icone={<IconeTelephone className="h-4 w-4" />}>
         <ListeChamps>
           <Champ libelle="Contact principal">
             {contact
@@ -217,10 +264,12 @@ export default function FicheLead() {
           </Champ>
           <Champ libelle="Rôle">{contact?.role ?? "—"}</Champ>
           <Champ libelle="E-mail">
-            {contact?.email ?? lead.emailBrut ?? "—"}
+            {/* Le contact d'abord, puis le lead, puis l'organisation : un
+                client repris du CRM porte souvent ses coordonnées là. */}
+            {contact?.email ?? lead.emailBrut ?? lead.organisation?.email ?? "—"}
           </Champ>
           <Champ libelle="Téléphone">
-            {contact?.telephone ?? lead.telephoneBrut ?? "—"}
+            {contact?.telephone ?? lead.telephoneBrut ?? lead.organisation?.telephone ?? "—"}
           </Champ>
           {lead.organisation && (
             <>
@@ -245,11 +294,15 @@ export default function FicheLead() {
         )}
       </Section>
 
-      <Section>
-        <JournalActivites activites={lead.activites} taches={lead.taches} />
+      <Section titre="Activités et échanges" icone={<IconeHorloge className="h-4 w-4" />}>
+        <JournalActivites
+          activites={lead.activites}
+          taches={lead.taches}
+          sansSuiteAdmise={leadClos}
+        />
       </Section>
 
-      <Section titre="Journal des décisions">
+      <Section titre="Journal des décisions" icone={<IconeListe className="h-4 w-4" />}>
         <JournalDecisions entrees={lead.journal} />
       </Section>
     </DispositionFiche>

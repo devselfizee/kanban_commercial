@@ -38,9 +38,15 @@ export type TacheAffichee = {
 export default function JournalActivites({
   activites,
   taches,
+  sansSuiteAdmise = false,
 }: {
   activites: ActiviteAffichee[];
   taches: TacheAffichee[];
+  /**
+   * Étape close ou attente datée : l'absence de prochaine action y est
+   * légitime (§9), et ne doit pas être signalée comme une faute.
+   */
+  sansSuiteAdmise?: boolean;
 }) {
   const maintenant = new Date();
   const ouvertes = taches.filter((t) => !t.faite);
@@ -87,6 +93,16 @@ export default function JournalActivites({
               </li>
             ))}
           </ul>
+        ) : echues.length > 0 ? (
+          // Une tâche existe, elle est seulement échue : le bloc rouge juste
+          // dessous le dit. Écrire « aucune action » le contredirait.
+          <p className="text-sm text-[var(--texte-doux)]">
+            Rien de plus à venir — voir les tâches échues ci-dessous.
+          </p>
+        ) : sansSuiteAdmise ? (
+          <p className="text-sm text-[var(--texte-doux)]">
+            Aucune action requise : étape close ou attente datée.
+          </p>
         ) : (
           <p className="rounded-md border border-[var(--danger)] bg-[var(--danger-fond)] px-3 py-2 text-sm text-[var(--danger)]">
             Aucune action planifiée. Une carte ne doit jamais rester sans suite.

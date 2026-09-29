@@ -25,8 +25,20 @@ import {
   JournalDecisions,
   ListeChamps,
   Section,
+  Reperes,
+  repereAge,
+  repereProchaineAction,
   type EntreeJournal,
 } from "@/composants/Fiche";
+import {
+  IconeCalendrier,
+  IconeCoche,
+  IconeDocument,
+  IconeEuro,
+  IconeHorloge,
+  IconeListe,
+  IconePersonne,
+} from "@/composants/Icones";
 import JournalActivites, {
   type ActiviteAffichee,
   type TacheAffichee,
@@ -34,6 +46,15 @@ import JournalActivites, {
 import ChecklistLld, { type ItemChecklist } from "@/composants/ChecklistLld";
 import ActionsLld from "@/composants/ActionsLld";
 import type { EtapeCommerciale, MotifClotureLld, StatutLld } from "@/lib/types";
+
+/** Statuts des devis CRM, en clair. */
+const STATUT_DEVIS: Record<string, string> = {
+  draft: "brouillon", sent: "envoyé", lu: "lu", open: "ouvert", clicked: "cliqué",
+  relance: "relancé", accepted: "accepté", acompte: "acompte versé",
+  billing: "à facturer", billed: "facturé", partially_billed: "partiellement facturé",
+  paid: "payé", partially_paid: "règlement partiel", refused: "refusé",
+  canceled: "annulé", expired: "expiré",
+};
 
 type DossierDetaille = {
   id: string;
@@ -59,6 +80,7 @@ type DossierDetaille = {
   dateLivraisonConfirmee: string | null;
   prochaineActionLe: string | null;
   prochaineActionLabel: string | null;
+  entreEnEtapeLe: string | null;
   prochaineRelanceLe: string | null;
   elementAttenduLabel: string | null;
   elementDemandeLe: string | null;
@@ -98,6 +120,10 @@ export default function FicheLld() {
   if (erreur) return <Erreur message={erreur} onReessayer={recharger} />;
   if (!d) return <Erreur message="Dossier introuvable." />;
 
+  const dossierClos =
+    d.statut === "LIVRAISON_CONFIRMEE_CONTRAT_ACTIF" ||
+    d.statut === "CLOTURE_NON_POURSUIVI";
+
   const checklistComplete =
     d.checklist.length > 0 && d.checklist.every((i) => i.fait);
 
@@ -105,7 +131,7 @@ export default function FicheLld() {
     <DispositionFiche
       actions={
         <>
-          <Section titre="Suivi">
+          <Section titre="Suivi" icone={<IconePersonne className="h-4 w-4" />}>
             <dl className="space-y-1.5 text-sm">
               <Champ libelle="Statut">{LIBELLE_STATUT_LLD[d.statut]}</Champ>
               <Champ libelle="Collaboratrice">
@@ -162,6 +188,8 @@ export default function FicheLld() {
         reference={d.reference}
         titre={d.opportunite.organisation?.nom ?? d.opportunite.titre}
         sousTitre={LIBELLE_STATUT_LLD[d.statut]}
+        icone={<IconeEuro />}
+        teinte="violet"
       >
         <p className="mt-2 text-xs text-[var(--texte-doux)]">
           Opportunité{" "}
@@ -173,13 +201,37 @@ export default function FicheLld() {
         {d.referenceDevisCrm && (
           <p className="mt-1 text-xs text-[var(--texte-doux)]">
             Repris du devis CRM {d.referenceDevisCrm}, facturé à GRENKE
-            {d.statutCrm && ` · statut CRM : ${d.statutCrm}`}. Tant qu'il n'est pas
+            {d.statutCrm && ` · statut CRM : ${STATUT_DEVIS[d.statutCrm] ?? d.statutCrm}`}. Tant qu'il n'est pas
             déplacé à la main, le dossier suit ce devis.
           </p>
         )}
       </EnTeteFiche>
 
-      <Section titre="Demande de financement">
+      <Reperes
+        reperes={[
+          // Transmis à GRENKE, un dossier attend : sa relance datée vaut
+          // prochaine action (attente formalisée, §9).
+          repereProchaineAction(
+            d.prochaineActionLe ?? d.prochaineRelanceLe,
+            d.prochaineActionLe ? d.prochaineActionLabel : d.prochaineRelanceLe ? "Relance" : null,
+            dossierClos,
+          ),
+          {
+            libelle: "Collaboratrice LLD",
+            valeur: d.collaboratrice
+              ? `${d.collaboratrice.prenom} ${d.collaboratrice.nom}`
+              : "Non attribuée",
+            ton: d.collaboratrice || dossierClos ? "normal" : "alerte",
+          },
+          repereAge(d.entreEnEtapeLe, dossierClos),
+          {
+            libelle: "Montant financé",
+            valeur: euros(d.montantFinance) ?? "—",
+          },
+        ]}
+      />
+
+      <Section titre="Demande de financement" icone={<IconeEuro className="h-4 w-4" />}>
         <ListeChamps>
           <Champ libelle="Durée demandée">
             {d.dureeDemandeeMois != null ? (
@@ -202,7 +254,7 @@ export default function FicheLld() {
 
       {/* Transmission : des faits horodatés et prouvés. */}
       {d.dateTransmission && (
-        <Section titre="Transmission">
+        <Section titre="Transmission" icone={<IconeCalendrier className="h-4 w-4" />}>
           <ListeChamps>
             <Champ libelle="Transmis le">
               {dateLongue(d.dateTransmission)}
@@ -216,7 +268,7 @@ export default function FicheLld() {
 
       {/* Retour partenaire : ce qui a été communiqué, sans interprétation. */}
       {d.dateRetourCommunique && (
-        <Section titre="Retour communiqué par le partenaire">
+        <Section titre="Retour communiqué par le partenaire" icone={<IconeListe className="h-4 w-4" />}>
           <ListeChamps>
             <Champ libelle="Date">
               {dateLongue(d.dateRetourCommunique)}
@@ -232,7 +284,7 @@ export default function FicheLld() {
       )}
 
       {d.elementAttenduLabel && (
-        <Section titre="Élément attendu">
+        <Section titre="Élément attendu" icone={<IconeHorloge className="h-4 w-4" />}>
           <ListeChamps>
             <Champ libelle="Élément">{d.elementAttenduLabel}</Champ>
             <Champ libelle="Demandé à">{d.elementDemandeA ?? "—"}</Champ>
@@ -244,7 +296,7 @@ export default function FicheLld() {
       )}
 
       {(d.signatureClientLe || d.dateLivraisonPrevue) && (
-        <Section titre="Contrat et livraison">
+        <Section titre="Contrat et livraison" icone={<IconeCoche className="h-4 w-4" />}>
           <ListeChamps>
             <Champ libelle="Signature client">
               {dateLongue(d.signatureClientLe) ?? "—"}
@@ -262,15 +314,19 @@ export default function FicheLld() {
         </Section>
       )}
 
-      <Section titre="Checklist interne">
-        <ChecklistLld
-          items={d.checklist}
-          modifiable={d.peutModifier}
-          onFait={recharger}
-        />
-      </Section>
+      {/* Un dossier repris déjà signé n'a pas de checklist : pas de barre
+          « 0/0 » qui ne mesure rien. */}
+      {d.checklist.length > 0 && (
+        <Section titre="Checklist interne" icone={<IconeCoche className="h-4 w-4" />}>
+          <ChecklistLld
+            items={d.checklist}
+            modifiable={d.peutModifier}
+            onFait={recharger}
+          />
+        </Section>
+      )}
 
-      <Section titre="Documents">
+      <Section titre="Documents" icone={<IconeDocument className="h-4 w-4" />}>
         {d.voitDocuments ? (
           d.documents.length === 0 ? (
             <p className="text-sm text-[var(--texte-doux)]">
@@ -302,11 +358,15 @@ export default function FicheLld() {
         )}
       </Section>
 
-      <Section>
-        <JournalActivites activites={d.activites} taches={d.taches} />
+      <Section titre="Activités et échanges" icone={<IconeHorloge className="h-4 w-4" />}>
+        <JournalActivites
+          activites={d.activites}
+          taches={d.taches}
+          sansSuiteAdmise={dossierClos}
+        />
       </Section>
 
-      <Section titre="Journal des décisions">
+      <Section titre="Journal des décisions" icone={<IconeListe className="h-4 w-4" />}>
         <JournalDecisions entrees={d.journal} />
       </Section>
     </DispositionFiche>

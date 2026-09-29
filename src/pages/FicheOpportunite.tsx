@@ -29,9 +29,20 @@ import {
   EnTeteFiche,
   JournalDecisions,
   ListeChamps,
+  Reperes,
   Section,
+  repereAge,
+  repereProchaineAction,
   type EntreeJournal,
 } from "@/composants/Fiche";
+import {
+  IconeDocument,
+  IconeEntonnoir,
+  IconeEuro,
+  IconeHorloge,
+  IconeListe,
+  IconePersonne,
+} from "@/composants/Icones";
 import JournalActivites, {
   type ActiviteAffichee,
   type TacheAffichee,
@@ -64,6 +75,7 @@ type OpportuniteDetaillee = {
   dateEvenement: string | null;
   prochaineActionLe: string | null;
   prochaineActionLabel: string | null;
+  entreEnEtapeLe: string | null;
   motifCloture: MotifClotureOpportunite | null;
   commentaireCloture: string | null;
   alerteCompatibilite: string | null;
@@ -140,12 +152,13 @@ export default function FicheOpportunite() {
   if (!opp) return <Erreur message="Opportunité introuvable." />;
 
   const lld = opp.dossierLld;
+  const oppClose = opp.etape === "GAGNE_ACTIF" || opp.etape === "PERDU_ABANDONNE";
 
   return (
     <DispositionFiche
       actions={
         <>
-          <Section titre="Suivi">
+          <Section titre="Suivi" icone={<IconePersonne className="h-4 w-4" />}>
             <dl className="space-y-1.5 text-sm">
               <Champ libelle="Commercial">
                 {opp.commercial
@@ -249,6 +262,8 @@ export default function FicheOpportunite() {
         ]
           .filter(Boolean)
           .join(" · ")}
+        icone={<IconeEntonnoir />}
+        teinte="rose"
       >
         {opp.lead && (
           <p className="mt-2 text-xs text-[var(--texte-doux)]">
@@ -261,7 +276,32 @@ export default function FicheOpportunite() {
         )}
       </EnTeteFiche>
 
-      <Section titre="Offre et valeurs">
+      <Reperes
+        reperes={[
+          repereProchaineAction(
+            opp.prochaineActionLe,
+            opp.prochaineActionLabel,
+            oppClose,
+          ),
+          {
+            libelle: "Commercial",
+            valeur: opp.commercial
+              ? `${opp.commercial.prenom} ${opp.commercial.nom}`
+              : "Non attribué",
+            ton: opp.commercial ? "normal" : "alerte",
+          },
+          repereAge(opp.entreEnEtapeLe, oppClose),
+          // Vente ou loyer, jamais la somme des deux (§6).
+          opp.loyerMensuelEnvisage && !opp.montantVente
+            ? {
+                libelle: "Loyer envisagé",
+                valeur: `${euros(opp.loyerMensuelEnvisage)} / mois`,
+              }
+            : { libelle: "Montant de vente", valeur: euros(opp.montantVente) ?? "—" },
+        ]}
+      />
+
+      <Section titre="Offre et valeurs" icone={<IconeEuro className="h-4 w-4" />}>
         <ListeChamps>
           <Champ libelle="Projet recherché">
             {LIBELLE_PROJET[opp.projetRecherche]}
@@ -299,7 +339,7 @@ export default function FicheOpportunite() {
       </Section>
 
       {opp.devis.length > 0 && (
-        <Section titre="Devis">
+        <Section titre="Devis" icone={<IconeDocument className="h-4 w-4" />}>
           <ul className="divide-y divide-[var(--trait)] text-sm">
             {opp.devis.map((d) => (
               <li
@@ -326,7 +366,7 @@ export default function FicheOpportunite() {
 
       {/* Devis du CRM : lus à l'ouverture de la fiche, jamais recopiés. */}
       {opp.devisCrm.etat === "ok" && opp.devisCrm.devis.length > 0 && (
-        <Section titre="Devis du CRM">
+        <Section titre="Devis du CRM" icone={<IconeDocument className="h-4 w-4" />}>
           <ul className="divide-y divide-[var(--trait)] text-sm">
             {opp.devisCrm.devis.map((d) => (
               <li key={d.id} className="py-1.5">
@@ -371,18 +411,22 @@ export default function FicheOpportunite() {
 
       {/* Un CRM injoignable n'est pas un client sans devis : le dire. */}
       {opp.devisCrm.etat === "indisponible" && (
-        <Section titre="Devis du CRM">
+        <Section titre="Devis du CRM" icone={<IconeDocument className="h-4 w-4" />}>
           <p className="text-sm text-[var(--texte-doux)]">
             Liste indisponible — {opp.devisCrm.detail}
           </p>
         </Section>
       )}
 
-      <Section>
-        <JournalActivites activites={opp.activites} taches={opp.taches} />
+      <Section titre="Activités et échanges" icone={<IconeHorloge className="h-4 w-4" />}>
+        <JournalActivites
+          activites={opp.activites}
+          taches={opp.taches}
+          sansSuiteAdmise={oppClose}
+        />
       </Section>
 
-      <Section titre="Journal des décisions">
+      <Section titre="Journal des décisions" icone={<IconeListe className="h-4 w-4" />}>
         <JournalDecisions entrees={opp.journal} />
       </Section>
     </DispositionFiche>

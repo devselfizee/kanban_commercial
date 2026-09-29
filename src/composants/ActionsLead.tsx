@@ -61,7 +61,7 @@ export default function ActionsLead({
   const terminal = lead.statut === "NON_QUALIFIE_CLOTURE";
 
   return (
-    <div className="rounded-xl border border-[var(--trait)] bg-white p-4">
+    <div className="rounded-xl border border-[var(--trait)] bg-white p-4 shadow-sm">
       <h2 className="mb-3 text-sm font-semibold text-[var(--texte-fort)]">
         Actions
       </h2>
