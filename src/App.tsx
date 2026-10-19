@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
-import Navigation from "./composants/Navigation";
+import AppLayout from "./composants/layout/AppLayout";
 import Connexion from "./pages/Connexion";
 import Accueil from "./pages/Accueil";
 import Leads from "./pages/Leads";
@@ -22,11 +22,7 @@ import FicheOpportunite from "./pages/FicheOpportunite";
 import FicheLld from "./pages/FicheLld";
 import { FournisseurSession } from "./lib/session";
 import { api, ErreurApi } from "./api/client";
-import {
-  authentificationActive,
-  estAuthentifie,
-  utilisateurLocal,
-} from "./lib/auth";
+import { estAuthentifie, utilisateurLocal } from "./lib/auth";
 import type { Utilisateur } from "./lib/types";
 
 type Etat =
@@ -85,11 +81,9 @@ export default function App() {
 
   return (
     <FournisseurSession value={etat.utilisateur}>
-      <Navigation
-        utilisateur={etat.utilisateur}
-        authentifie={authentificationActive}
-      />
-      <main className="px-5 py-5">
+      {/* Barre du haut et barre latérale de la plateforme Konitys, chargées
+          en ligne comme dans Stock Manager. */}
+      <AppLayout utilisateur={etat.utilisateur}>
         <Routes>
           <Route path="/" element={<Accueil />} />
           <Route path="/leads" element={<Leads />} />
@@ -104,7 +98,7 @@ export default function App() {
           <Route path="/synchro" element={<Synchro />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </main>
+      </AppLayout>
     </FournisseurSession>
   );
 }

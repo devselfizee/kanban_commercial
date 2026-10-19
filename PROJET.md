@@ -132,7 +132,22 @@ Les autres variables ont une valeur par défaut correcte ; elles sont décrites
 dans `.env.example` de l'API.
 
 Réglages de l'interface (Build Arguments) : `VITE_API_URL`,
-`VITE_KEYCLOAK_URL`, `VITE_KEYCLOAK_REALM`, `VITE_KEYCLOAK_CLIENT_ID`.
+`VITE_KEYCLOAK_URL`, `VITE_KEYCLOAK_REALM`, `VITE_KEYCLOAK_CLIENT_ID`, et
+`VITE_PLATEFORM_URL` (facultatif, `https://plateform.orkessidev.com` par
+défaut).
+
+## Barres et thème
+
+La barre du haut et la barre latérale sont celles de la plateforme Konitys,
+chargées en ligne depuis le hub — comme dans Stock Manager
+(`E:stock-managementclient-stock`). Des versions locales prennent le relais
+si le hub ne répond pas. Le thème reprend les jetons `--k-*` de Stock Manager
+(accent indigo, barre latérale bleu nuit, police Inter).
+
+Le hub du domaine `orkessidev.com` est `https://plateform.orkessidev.com`, et
+celui de production `https://plateform.orkessi.com`. Les adresses Railway
+encore citées par Stock Manager (`konitys-hub-prod.up.railway.app`) ne
+répondent plus.
 
 ## Commandes dans le conteneur de l'API
 

@@ -1,52 +1,81 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /**
- * Charte Selfizee.
+ * Thème Konitys — le même que Stock Manager et les autres applications de la
+ * plateforme, dont la barre du haut et la barre latérale sont chargées en
+ * ligne (voir `remoteLoader.ts`).
  *
- * Les teintes sont relevées sur la maquette fournie. Le rose est la couleur de
- * marque : il signale l'élément actif et les accents, jamais un état d'alerte —
- * ceux-ci gardent l'ambre et le rouge, faute de quoi une carte en retard se
- * confondrait avec le reste de l'interface.
+ * Les jetons `--k-*` sont repris tels quels de Stock Manager. Les variables
+ * historiques du kanban (`--selfizee-*`, `--texte…`, `--trait…`) restent, mais
+ * pointent désormais vers ces jetons : chaque composant prend le thème sans
+ * être réécrit. `--selfizee-*` est donc l'échelle de l'accent — indigo — et
+ * non plus le rose de la charte Selfizee.
+ *
+ * Les états gardent l'ambre et le rouge, distincts de l'accent : une carte en
+ * retard ne doit jamais se confondre avec un élément simplement actif.
  */
 
 :root {
-  /* Marque */
-  --selfizee-50: #fdf2f8;
-  --selfizee-100: #fde8f2;
-  --selfizee-200: #fbc9df;
-  --selfizee-300: #f9a8cd;
-  --selfizee-400: #f93e8e;
-  --selfizee-500: #e81361;
-  --selfizee-600: #dd0049;
-  --selfizee-700: #b8003d;
+  /* Jetons Konitys — identiques à Stock Manager */
+  --k-bg: #ebf0fa;
+  --k-surface: #ffffff;
+  --k-surface-2: #e3eaf5;
+  --k-border: #d6dfed;
+  --k-text: #1a1d2b;
+  --k-muted: #5e6a82;
+  --k-primary: #4f46e5;
+  --k-primary-2: #eef2ff;
+  --k-primary-border: #c7d2fe;
+  --k-success: #16a34a;
+  --k-warning: #ea580c;
+  --k-danger: #dc2626;
+  --k-sidebar-bg: #1e2a40;
+  --k-sidebar-text: #94a3b8;
+  --k-sidebar-text-active: #f1f5f9;
+  --k-sidebar-hover: #263650;
+  --k-sidebar-border: #2f4264;
+  --k-sidebar-section: #6b85a8;
+  --k-topbar-h: 48px;
+
+  /* Échelle de l'accent (indigo), sous les noms historiques du kanban */
+  --selfizee-50: var(--k-primary-2);
+  --selfizee-100: #e0e7ff;
+  --selfizee-200: var(--k-primary-border);
+  --selfizee-300: #a5b4fc;
+  --selfizee-400: #6366f1;
+  --selfizee-500: #5850ec;
+  --selfizee-600: var(--k-primary);
+  --selfizee-700: #4338ca;
 
   /* Surfaces */
-  --fond-page: #fafbfc;
-  --fond-carte: #ffffff;
-  --fond-colonne: #fafbfc;
-  --fond-colonne-entete-desc: #fdf4f9;
+  --fond-page: var(--k-bg);
+  --fond-carte: var(--k-surface);
+  --fond-colonne: #f4f7fc;
+  --fond-colonne-entete-desc: var(--k-primary-2);
 
   /* Texte */
-  --texte-fort: #1d1b3a;
-  --texte: #3f3d56;
-  --texte-doux: #6b7280;
-  --texte-tres-doux: #9ca3af;
+  --texte-fort: var(--k-text);
+  --texte: #3a4256;
+  --texte-doux: var(--k-muted);
+  --texte-tres-doux: #8a94a8;
 
   /* Traits */
-  --trait: #eceef2;
-  --trait-fort: #dcdeea;
+  --trait: #e1e7f2;
+  --trait-fort: var(--k-border);
 
-  /* États — volontairement distincts du rose de marque */
+  /* États — volontairement distincts de l'accent */
   --alerte-fond: #fef1bd;
   --alerte-bord: #fec046;
   --alerte-texte: #8a5a00;
   --succes-fond: #d2f4e2;
   --succes-texte: #0f6b43;
-  --neutre-fond: #edf3f7;
-  --neutre-texte: #77879c;
-  --danger: #dc2626;
+  --neutre-fond: var(--k-surface-2);
+  --neutre-texte: var(--k-muted);
+  --danger: var(--k-danger);
   --danger-fond: #fee2e2;
 }
 
@@ -59,9 +88,10 @@ body,
 }
 
 body {
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Barres de défilement discrètes : les tableaux en comportent beaucoup. */

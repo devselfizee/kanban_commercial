@@ -113,3 +113,37 @@ export const IconeDocument = (p: Props) => (
     <path d="M14 3v5h5M9 13h6M9 17h6" />
   </Trait>
 );
+
+export const IconeTableauBord = (p: Props) => (
+  <Trait {...p}>
+    <rect x="3" y="3" width="7" height="9" rx="1.5" />
+    <rect x="14" y="3" width="7" height="5" rx="1.5" />
+    <rect x="14" y="12" width="7" height="9" rx="1.5" />
+    <rect x="3" y="16" width="7" height="5" rx="1.5" />
+  </Trait>
+);
+
+export const IconeSynchro = (p: Props) => (
+  <Trait {...p}>
+    <path d="M21 12a9 9 0 0 1-15.5 6.2L3 16M3 12a9 9 0 0 1 15.5-6.2L21 8" />
+    <path d="M21 3v5h-5M3 21v-5h5" />
+  </Trait>
+);
+
+export const IconeMenu = (p: Props) => (
+  <Trait {...p}>
+    <path d="M4 6h16M4 12h16M4 18h16" />
+  </Trait>
+);
+
+export const IconeSortie = (p: Props) => (
+  <Trait {...p}>
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+  </Trait>
+);
+
+export const IconeChevrons = (p: Props & { vers: "gauche" | "droite" }) => (
+  <Trait className={p.className}>
+    {p.vers === "gauche" ? <path d="m11 17-5-5 5-5M18 17l-5-5 5-5" /> : <path d="m13 17 5-5-5-5M6 17l5-5-5-5" />}
+  </Trait>
+);

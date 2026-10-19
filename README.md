@@ -83,26 +83,37 @@ Deux propriétés dépassent l'affichage :
 Ces deux drapeaux implémentent la règle « une carte ne doit jamais être perdue »,
 avec ses exceptions.
 
-## La charte
+## Barres et thème : la plateforme Konitys
 
-Les couleurs sont relevées par échantillonnage de la maquette, et exposées en
-variables CSS dans `styles.css`.
+Comme Stock Manager, le kanban s'intègre à la plateforme Konitys :
 
-**Le rose est la couleur de marque** : il signale l'élément actif et les accents,
-jamais un état d'alerte. L'ambre et le rouge restent réservés aux cartes qui
-demandent une action — sans quoi une carte en retard se fondrait dans le décor.
+- **La barre du haut et la barre latérale sont chargées en ligne** depuis le
+  hub (`VITE_PLATEFORM_URL`, `https://plateform.orkessidev.com` par défaut),
+  par Module Federation — `src/remoteLoader.ts`, repris de Stock Manager. Une
+  évolution du hub (sélecteur d'applications, compte, notifications) arrive
+  sans redéployer le kanban.
+- **Si le hub ne répond pas**, des versions locales au même dessin prennent le
+  relais (`src/composants/layout/BarresLocales.tsx`) : la navigation ne dépend
+  jamais d'un service tiers.
+- **Le thème** reprend les jetons `--k-*` de Stock Manager : fond bleu clair,
+  accent indigo, barre latérale bleu nuit, police Inter. Les variables
+  historiques du kanban (`--selfizee-*`, `--texte…`, `--trait…`) pointent vers
+  ces jetons dans `styles.css` ; `--selfizee-*` est donc l'échelle de l'accent
+  indigo, non plus le rose de la charte Selfizee.
+
+Chaque tableau porte en badge, dans la barre latérale, ses cartes sans suivi.
+
+L'ambre et le rouge restent réservés aux cartes qui demandent une action —
+distincts de l'accent, pour qu'une carte en retard ne se fonde jamais dans le
+décor.
 
 | Élément | Couleur |
 |---|---|
-| Onglet actif, boutons | `--selfizee-600` `#dd0049` |
-| En-têtes de colonnes | `--selfizee-400` `#f93e8e` |
-| Attente formalisée | `--selfizee-300` `#f9a8cd` |
-| Étape terminale | `--neutre-texte` `#77879c` |
+| Accent, élément actif | `--k-primary` `#4f46e5` |
+| Fond de page | `--k-bg` `#ebf0fa` |
+| Barre latérale | `--k-sidebar-bg` `#1e2a40` |
 | Alerte partenaire | `--alerte-bord` `#fec046` |
 | Carte sans suivi | `--danger` `#dc2626` |
-
-Le logotype est repris du CRM, en deux déclinaisons — noire pour les fonds
-clairs, blanche pour les fonds colorés. Il n'est jamais recoloré ni reconstitué.
 
 ## Déploiement Coolify
 
