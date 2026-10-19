@@ -140,7 +140,7 @@ défaut).
 
 La barre du haut et la barre latérale sont celles de la plateforme Konitys,
 chargées en ligne depuis le hub — comme dans Stock Manager
-(`E:stock-managementclient-stock`). Des versions locales prennent le relais
+(`E:\stock-management\client-stock`). Des versions locales prennent le relais
 si le hub ne répond pas. Le thème reprend les jetons `--k-*` de Stock Manager
 (accent indigo, barre latérale bleu nuit, police Inter).
 
